@@ -215,7 +215,7 @@ export function SquaresPageClient({ initialData }: SquaresPageClientProps) {
       </Modal>
 
       {/* Game Area */}
-      <div className="flex flex-1 flex-col items-center w-full overflow-hidden">
+      <div className="flex flex-1 flex-col items-center w-full overflow-y-auto">
         <SquaresGame initialData={initialData} />
       </div>
     </main>

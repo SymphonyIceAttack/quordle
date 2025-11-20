@@ -7,6 +7,7 @@ import {
   Hash,
   Info,
   LayoutGrid,
+  Menu,
   Moon,
   RotateCcw,
   Settings,
@@ -20,6 +21,12 @@ import { useEffect, useState } from "react";
 import { GamePlaceholder } from "@/components/features/placeholder/GamePlaceholder";
 import { WordleMultiGame } from "@/components/features/wordle-multi/WordleMultiGame";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { type GameStats, loadStats } from "@/lib/stats";
 import { cn } from "@/lib/utils";
 import type { DailyWordPool } from "@/types/AIWordPool";
@@ -102,6 +109,43 @@ export function QuordlePageClient({ initialData }: QuordlePageClientProps) {
       {/* Header */}
       <header className="flex w-full items-center justify-between border-b border-border px-4 py-2 sm:px-6 bg-background shadow-sm sticky top-0 z-10 shrink-0">
         <div className="flex items-center gap-3">
+          {/* Mobile Menu Trigger */}
+          <div className="md:hidden">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="-ml-2">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                <DropdownMenuItem asChild>
+                  <Link
+                    href="/squares"
+                    className="flex items-center gap-2 w-full cursor-pointer"
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                    <span>Squares</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setActiveGame("combinations")}
+                  className="flex items-center gap-2 w-full cursor-pointer"
+                >
+                  <Grid3X3 className="h-4 w-4" />
+                  <span>Combinations</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setActiveGame("strands")}
+                  className="flex items-center gap-2 w-full cursor-pointer"
+                >
+                  <Hash className="h-4 w-4" />
+                  <span>Strands</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
           <Link
             href="/"
             className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"

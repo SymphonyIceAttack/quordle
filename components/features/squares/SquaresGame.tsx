@@ -469,92 +469,96 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
             </Button>
           </div>
 
-          <Card className="p-6 shadow-sm border border-border/50 bg-white dark:bg-card min-h-[500px]">
-            <div className="space-y-6">
-              <div className="font-bold text-lg">
+          <Card className="flex flex-col p-6 shadow-sm border border-border/50 bg-white dark:bg-card h-[500px]">
+            <div className="space-y-6 flex flex-col h-full">
+              <div className="font-bold text-lg shrink-0">
                 Words found: {foundWords.length} / {allWords.length}
               </div>
 
-              {sortMode === "length" ? (
-                <div className="space-y-6">
-                  {wordCategories.map((cat) => {
-                    const wordsInCat = foundWords.filter(
-                      (w) => w.length === cat.length,
-                    );
-                    return (
-                      <div key={cat.length} className="space-y-2">
-                        <div className="space-y-1">
-                          <div className="font-bold text-base">
-                            {cat.length}-letter
+              <div className="flex-1 overflow-y-auto pr-2 -mr-2">
+                {sortMode === "length" ? (
+                  <div className="space-y-6">
+                    {wordCategories.map((cat) => {
+                      const wordsInCat = foundWords.filter(
+                        (w) => w.length === cat.length,
+                      );
+                      return (
+                        <div key={cat.length} className="space-y-2">
+                          <div className="space-y-1">
+                            <div className="font-bold text-base">
+                              {cat.length}-letter
+                            </div>
+                            <div className="text-sm text-muted-foreground font-medium">
+                              (+{cat.total - wordsInCat.length} words left)
+                            </div>
                           </div>
-                          <div className="text-sm text-muted-foreground font-medium">
-                            (+{cat.total - wordsInCat.length} words left)
-                          </div>
-                        </div>
-                        {wordsInCat.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
-                            {wordsInCat.map((word, i) => (
-                              <span
-                                key={i}
-                                className="text-sm font-medium bg-muted/30 px-2 py-1 rounded"
-                              >
-                                {word}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {foundWords.length === 0 ? (
-                    <div className="text-muted-foreground text-sm italic">
-                      No words found yet.
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-2">
-                      {foundWords.map((word, i) => (
-                        <div
-                          key={i}
-                          className="flex items-center justify-between text-sm font-medium border-b border-border/50 pb-2 last:border-0"
-                        >
-                          <span>{word}</span>
-                          <span className="text-muted-foreground text-xs">
-                            {word.length} letters
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {showDebug && (
-                <div className="mt-8 pt-4 border-t border-border/50">
-                  <h3 className="font-bold text-red-500 mb-2 flex items-center gap-2">
-                    <Bug className="h-4 w-4" /> Developer Mode
-                  </h3>
-                  <div className="flex flex-wrap gap-1">
-                    {allWords
-                      .sort((a, b) => a.length - b.length || a.localeCompare(b))
-                      .map((word) => (
-                        <span
-                          key={word}
-                          className={cn(
-                            "text-xs px-1.5 py-0.5 rounded border",
-                            foundWords.includes(word)
-                              ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800"
-                              : "bg-red-50 text-red-800 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800",
+                          {wordsInCat.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {wordsInCat.map((word, i) => (
+                                <span
+                                  key={i}
+                                  className="text-sm font-medium bg-muted/30 px-2 py-1 rounded"
+                                >
+                                  {word}
+                                </span>
+                              ))}
+                            </div>
                           )}
-                        >
-                          {word}
-                        </span>
-                      ))}
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="space-y-2">
+                    {foundWords.length === 0 ? (
+                      <div className="text-muted-foreground text-sm italic">
+                        No words found yet.
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        {foundWords.map((word, i) => (
+                          <div
+                            key={i}
+                            className="flex items-center justify-between text-sm font-medium border-b border-border/50 pb-2 last:border-0"
+                          >
+                            <span>{word}</span>
+                            <span className="text-muted-foreground text-xs">
+                              {word.length} letters
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {showDebug && (
+                  <div className="mt-8 pt-4 border-t border-border/50">
+                    <h3 className="font-bold text-red-500 mb-2 flex items-center gap-2">
+                      <Bug className="h-4 w-4" /> Developer Mode
+                    </h3>
+                    <div className="flex flex-wrap gap-1">
+                      {allWords
+                        .sort(
+                          (a, b) => a.length - b.length || a.localeCompare(b),
+                        )
+                        .map((word) => (
+                          <span
+                            key={word}
+                            className={cn(
+                              "text-xs px-1.5 py-0.5 rounded border",
+                              foundWords.includes(word)
+                                ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800"
+                                : "bg-red-50 text-red-800 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800",
+                            )}
+                          >
+                            {word}
+                          </span>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </Card>
         </div>
