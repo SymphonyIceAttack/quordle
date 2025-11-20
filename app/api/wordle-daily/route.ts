@@ -27,10 +27,10 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   // Admin/Debug endpoint to force regeneration
   try {
-    // const authHeader = request.headers.get("authorization");
-    // if (authHeader !== `Bearer ${process.env.API_SECRET}`) {
-    //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    // }
+    const authHeader = request.headers.get("authorization");
+    if (authHeader !== `Bearer ${process.env.API_SECRET}`) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     revalidateTag("daily-word-pool", "max");
     revalidateTag("daily-squares-puzzle", "max");
