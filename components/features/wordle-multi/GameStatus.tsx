@@ -16,7 +16,9 @@ export const GameStatus: React.FC<GameStatusProps> = ({ game }) => {
     <div className="w-full max-w-4xl mx-auto mb-6 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-bold text-white">Quordle Challenge</h2>
+          <h2 className="text-2xl font-bold text-foreground">
+            Quordle Challenge
+          </h2>
           <Badge
             variant={
               game.overallStatus === "won"
@@ -33,7 +35,7 @@ export const GameStatus: React.FC<GameStatusProps> = ({ game }) => {
                 : "Game Over"}
           </Badge>
         </div>
-        <div className="text-white font-mono">
+        <div className="text-muted-foreground font-mono">
           {solvedCount}/{totalPuzzles} Solved
         </div>
       </div>
@@ -41,7 +43,8 @@ export const GameStatus: React.FC<GameStatusProps> = ({ game }) => {
       <Progress value={progress} className="h-3" />
 
       {game.overallStatus !== "playing" && (
-        <div className="text-center p-4 bg-white/10 backdrop-blur-md rounded-lg border border-white/20 text-white animate-in fade-in slide-in-from-bottom-4">
+        /* Updated container styles to be theme-aware (bg-muted/50, text-foreground, border-border) instead of hardcoded white styles */
+        <div className="text-center p-4 bg-muted/50 backdrop-blur-md rounded-lg border border-border text-foreground animate-in fade-in slide-in-from-bottom-4">
           {game.overallStatus === "won" ? (
             <div>
               <p className="text-xl font-bold mb-2">🎉 Amazing Job!</p>

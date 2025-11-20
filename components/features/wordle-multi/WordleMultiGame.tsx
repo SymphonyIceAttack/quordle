@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { updateStats } from "@/lib/stats";
 import { cn } from "@/lib/utils";
 import {
   calculateOverallStatus,
@@ -119,7 +120,7 @@ export const WordleMultiGame: React.FC<WordleMultiGameProps> = ({
     answer: string,
     difficulty: "easy" | "medium" | "hard",
   ): WordlePuzzle => ({
-    id: `puzzle-${Math.random().toString(36).substr(2, 9)}`,
+    id: `puzzle-${Math.random().toString(36).substring(2, 11)}`,
     answer: answer.toUpperCase(),
     guesses: [],
     feedback: [],
@@ -156,6 +157,10 @@ export const WordleMultiGame: React.FC<WordleMultiGameProps> = ({
     setCurrentGuess("");
 
     if (overallStatus !== "playing") {
+      const isWin = overallStatus === "won";
+      const guessCount = updatedPuzzles[0].guesses.length;
+      updateStats(isWin, guessCount);
+
       if (overallStatus === "won") {
         toast.success("Congratulations!", {
           description: "You solved all puzzles!",
@@ -241,7 +246,7 @@ export const WordleMultiGame: React.FC<WordleMultiGameProps> = ({
               <div className="flex items-center justify-between w-full mb-0.5 sm:mb-1 px-1">
                 <h3 className="font-semibold text-[10px] sm:text-xs text-muted-foreground">
                   Puzzle {index + 1}
-                  {process.env.NODE_ENV === "development" && (
+                  {process.env.NEXT_PUBLIC_DEV_MODE === "development" && (
                     <span className="ml-1 text-red-500">[{puzzle.answer}]</span>
                   )}
                 </h3>

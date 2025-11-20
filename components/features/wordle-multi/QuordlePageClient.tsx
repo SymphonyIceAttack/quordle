@@ -13,12 +13,14 @@ import {
   Sun,
   X,
 } from "lucide-react";
+import Link from "next/link"; // Added Link import
 import { useTheme } from "next-themes";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { GamePlaceholder } from "@/components/features/placeholder/GamePlaceholder";
 import { WordleMultiGame } from "@/components/features/wordle-multi/WordleMultiGame";
 import { Button } from "@/components/ui/button";
+import { type GameStats, loadStats } from "@/lib/stats";
 import { cn } from "@/lib/utils";
 import type { DailyWordPool } from "@/types/AIWordPool";
 
@@ -65,13 +67,14 @@ interface QuordlePageClientProps {
 export function QuordlePageClient({ initialData }: QuordlePageClientProps) {
   const [mounted, setMounted] = useState(false);
   const [activeGame, setActiveGame] = useState<
-    "quordle" | "squares" | "combinations" | "strands"
+    "quordle" | "combinations" | "strands"
   >("quordle");
 
   // Modals state
   const [showStats, setShowStats] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  const [stats, setStats] = useState<GameStats | null>(null);
 
   // Settings state
   const { setTheme, resolvedTheme } = useTheme();
@@ -79,6 +82,12 @@ export function QuordlePageClient({ initialData }: QuordlePageClientProps) {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (showStats) {
+      setStats(loadStats());
+    }
+  }, [showStats]);
 
   const toggleDarkMode = () => {
     setTheme(resolvedTheme === "dark" ? "light" : "dark");
@@ -93,9 +102,9 @@ export function QuordlePageClient({ initialData }: QuordlePageClientProps) {
       {/* Header */}
       <header className="flex w-full items-center justify-between border-b border-border px-4 py-2 sm:px-6 bg-background shadow-sm sticky top-0 z-10 shrink-0">
         <div className="flex items-center gap-3">
-          <div
+          <Link
+            href="/"
             className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={() => setActiveGame("quordle")}
           >
             <div className="flex h-9 w-9 items-center justify-center rounded bg-green-500 text-white font-bold text-xl shadow-sm">
               Q
@@ -103,23 +112,20 @@ export function QuordlePageClient({ initialData }: QuordlePageClientProps) {
             <h1 className="text-2xl font-extrabold tracking-tight hidden sm:block">
               QUORDLE
             </h1>
-          </div>
+          </Link>
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-1 ml-4">
-            <Button
-              variant={activeGame === "squares" ? "secondary" : "ghost"}
-              size="sm"
-              className={cn(
-                "gap-2",
-                activeGame !== "squares" &&
-                  "text-muted-foreground hover:text-foreground",
-              )}
-              onClick={() => setActiveGame("squares")}
-            >
-              <LayoutGrid className="h-4 w-4" />
-              Squares
-            </Button>
+            <Link href="/squares">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <LayoutGrid className="h-4 w-4" />
+                Squares
+              </Button>
+            </Link>
             <Button
               variant={activeGame === "combinations" ? "secondary" : "ghost"}
               size="sm"
@@ -191,14 +197,86 @@ export function QuordlePageClient({ initialData }: QuordlePageClientProps) {
         onClose={() => setShowStats(false)}
         title="Statistics"
       >
-        <div className="text-center p-4">
-          <p className="text-muted-foreground">
-            Statistics are tracked per game session in this version.
-          </p>
-          <p className="mt-2">
-            Check the game status bar for current progress!
-          </p>
-        </div>
+        {stats ? (
+          <div className="flex flex-col gap-6 p-2">
+            <div className="grid grid-cols-4 gap-4 text-center">
+              <div className="flex flex-col items-center">
+                <span className="text-3xl font-bold">{stats.gamesPlayed}</span>
+                <span className="text-xs text-muted-foreground uppercase tracking-wider mt-1">
+                  Played
+                </span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-3xl font-bold">
+                  {stats.winPercentage}
+                </span>
+                <span className="text-xs text-muted-foreground uppercase tracking-wider mt-1">
+                  Win %
+                </span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-3xl font-bold">
+                  {stats.currentStreak}
+                </span>
+                <span className="text-xs text-muted-foreground uppercase tracking-wider mt-1">
+                  Current Streak
+                </span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-3xl font-bold">{stats.maxStreak}</span>
+                <span className="text-xs text-muted-foreground uppercase tracking-wider mt-1">
+                  Max Streak
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-bold mb-3 text-sm uppercase tracking-wider text-muted-foreground">
+                Guess Distribution
+              </h3>
+              <div className="flex flex-col gap-2">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((guess) => {
+                  const count = stats.guessDistribution[guess] || 0;
+                  const maxCount = Math.max(
+                    ...Object.values(stats.guessDistribution),
+                    1,
+                  );
+                  const percentage = Math.max((count / maxCount) * 100, 5); // Min 5% width for visibility
+
+                  return (
+                    <div
+                      key={guess}
+                      className="flex items-center gap-2 text-sm"
+                    >
+                      <span className="w-4 text-right font-mono text-muted-foreground">
+                        {guess}
+                      </span>
+                      <div className="flex-1 h-6 bg-muted/30 rounded-sm overflow-hidden flex items-center">
+                        <div
+                          className={cn(
+                            "h-full flex items-center justify-end px-2 text-xs font-bold transition-all duration-500 ease-out",
+                            count > 0
+                              ? "bg-green-500 text-white"
+                              : "bg-transparent text-muted-foreground",
+                          )}
+                          style={{
+                            width: count > 0 ? `${percentage}%` : "auto",
+                          }}
+                        >
+                          {count}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center p-8 text-muted-foreground">
+            Loading statistics...
+          </div>
+        )}
       </Modal>
 
       <Modal
@@ -323,13 +401,6 @@ export function QuordlePageClient({ initialData }: QuordlePageClientProps) {
       <div className="flex flex-1 flex-col items-center w-full overflow-hidden">
         {activeGame === "quordle" ? (
           <WordleMultiGame gameMode="daily" initialData={initialData} />
-        ) : activeGame === "squares" ? (
-          <GamePlaceholder
-            title="Squares"
-            icon={LayoutGrid}
-            description="A 2D word puzzle challenge where words intersect."
-            onBack={() => setActiveGame("quordle")}
-          />
         ) : activeGame === "combinations" ? (
           <GamePlaceholder
             title="Combinations"

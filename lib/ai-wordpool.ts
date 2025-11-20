@@ -14,7 +14,8 @@ const FALLBACK_WORDS = {
 export async function generateDailyWords(
   difficulty: "beginner" | "intermediate" | "expert" = "intermediate",
 ): Promise<DailyWordPool> {
-  const prompt = `Generate 12 unique 5-letter English words for Wordle puzzles with the following specifications:
+  const today = new Date().toISOString().split("T")[0];
+  const prompt = `Generate 12 unique 5-letter English words for Wordle puzzles for the date ${today} with the following specifications:
     
     Difficulty: ${difficulty}
     - Easy: Common, everyday words (e.g., TABLE, CHAIR, WATER)
@@ -61,7 +62,7 @@ export async function generateDailyWords(
 
   return {
     words: parsedWords.words,
-    date: new Date().toISOString().split("T")[0],
+    date: today,
     metadata: {
       generatedAt: new Date().toISOString(),
       aiModel: "deepseek-chat",
