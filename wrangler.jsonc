@@ -10,9 +10,9 @@
   ],
   "kv_namespaces": [
     {
-      "binding": "PUZZLE_CACHE",
-      "id": "4e84cd3cb38b4d7fbe4d92eb0afb9da8"
-    }
+      "binding": "NEXT_INC_CACHE_KV",
+      "id": "6e294591fd634750bbae2af039b9268f",
+    },
   ],
   "assets": {
     "directory": ".open-next/assets",

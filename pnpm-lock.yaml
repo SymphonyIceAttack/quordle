@@ -41,9 +41,15 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      kv-cache:
+        specifier: link:@opennextjs/cloudflare/kv-cache
+        version: link:@opennextjs/cloudflare/kv-cache
       lucide-react:
         specifier: ^0.553.0
         version: 0.553.0(react@19.2.0)
+      memory-queue:
+        specifier: link:@opennextjs/cloudflare/memory-queue
+        version: link:@opennextjs/cloudflare/memory-queue
       next:
         specifier: 16.0.3
         version: 16.0.3(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
