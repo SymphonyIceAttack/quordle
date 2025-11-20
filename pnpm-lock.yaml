@@ -11,12 +11,15 @@ importers:
       '@ai-sdk/deepseek':
         specifier: ^1.0.28
         version: 1.0.28(zod@4.1.12)
+      '@cloudflare/workers-types':
+        specifier: ^4.20251120.0
+        version: 4.20251120.0
       '@directus/sdk':
         specifier: ^20.1.1
         version: 20.2.0
       '@opennextjs/cloudflare':
         specifier: ^1.13.0
-        version: 1.13.0(wrangler@4.47.0)
+        version: 1.13.0(wrangler@4.47.0(@cloudflare/workers-types@4.20251120.0))
       '@radix-ui/react-accordion':
         specifier: ^1.2.12
         version: 1.2.12(@types/react-dom@19.2.3(@types/react@19.2.6))(@types/react@19.2.6)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -98,7 +101,7 @@ importers:
         version: 5.9.3
       wrangler:
         specifier: 4.47.0
-        version: 4.47.0
+        version: 4.47.0(@cloudflare/workers-types@4.20251120.0)
 
 packages:
 
@@ -600,6 +603,9 @@ packages:
     engines: {node: '>=16'}
     cpu: [x64]
     os: [win32]
+
+  '@cloudflare/workers-types@4.20251120.0':
+    resolution: {integrity: sha512-/uy0Oleot60ZS037I2mxR9NEft6eQYdknKBnM76W91I+7BKznzXKj2MtXMfSXTLsxyP+6MluYRNPrRCQDlk8kw==}
 
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
@@ -5152,6 +5158,8 @@ snapshots:
   '@cloudflare/workerd-windows-64@1.20251109.0':
     optional: true
 
+  '@cloudflare/workers-types@4.20251120.0': {}
+
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
@@ -5578,7 +5586,7 @@ snapshots:
       - aws-crt
       - supports-color
 
-  '@opennextjs/cloudflare@1.13.0(wrangler@4.47.0)':
+  '@opennextjs/cloudflare@1.13.0(wrangler@4.47.0(@cloudflare/workers-types@4.20251120.0))':
     dependencies:
       '@ast-grep/napi': 0.40.0
       '@dotenvx/dotenvx': 1.31.0
@@ -5587,7 +5595,7 @@ snapshots:
       enquirer: 2.4.1
       glob: 12.0.0
       ts-tqdm: 0.8.6
-      wrangler: 4.47.0
+      wrangler: 4.47.0(@cloudflare/workers-types@4.20251120.0)
       yargs: 18.0.0
     transitivePeerDependencies:
       - aws-crt
@@ -9001,7 +9009,7 @@ snapshots:
       '@cloudflare/workerd-linux-arm64': 1.20251109.0
       '@cloudflare/workerd-windows-64': 1.20251109.0
 
-  wrangler@4.47.0:
+  wrangler@4.47.0(@cloudflare/workers-types@4.20251120.0):
     dependencies:
       '@cloudflare/kv-asset-handler': 0.4.0
       '@cloudflare/unenv-preset': 2.7.10(unenv@2.0.0-rc.24)(workerd@1.20251109.0)
@@ -9012,6 +9020,7 @@ snapshots:
       unenv: 2.0.0-rc.24
       workerd: 1.20251109.0
     optionalDependencies:
+      '@cloudflare/workers-types': 4.20251120.0
       fsevents: 2.3.3
     transitivePeerDependencies:
       - bufferutil
