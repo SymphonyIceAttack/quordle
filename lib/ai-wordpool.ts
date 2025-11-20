@@ -13,8 +13,9 @@ const FALLBACK_WORDS = {
 
 export async function generateDailyWords(
   difficulty: "beginner" | "intermediate" | "expert" = "intermediate",
+  date?: string,
 ): Promise<DailyWordPool> {
-  const today = new Date().toISOString().split("T")[0];
+  const today = date || new Date().toISOString().split("T")[0];
   const prompt = `Generate 12 unique 5-letter English words for Wordle puzzles for the date ${today} with the following specifications:
     
     Difficulty: ${difficulty}
@@ -74,11 +75,13 @@ export async function generateDailyWords(
 // In a real app, this would cache to a DB or KV store
 // For this demo, we'll just generate fresh words if needed or rely on client-side state
 export async function cacheDailyWords(): Promise<DailyWordPool> {
+  const today = new Date().toISOString().split("T")[0];
+
   const getCachedWords = unstable_cache(
     async () => {
-      return generateDailyWords();
+      return generateDailyWords("intermediate", today);
     },
-    ["daily-word-pool"],
+    ["daily-word-pool", today],
     {
       revalidate: 86400, // 24 hours
       tags: ["daily-word-pool"],

@@ -129,8 +129,10 @@ function canFindWord(word: string, grid: string[]): boolean {
   return false;
 }
 
-export async function generateDailySquares(): Promise<DailySquares> {
-  const today = new Date().toISOString().split("T")[0];
+export async function generateDailySquares(
+  date?: string,
+): Promise<DailySquares> {
+  const today = date || new Date().toISOString().split("T")[0];
   const prompt = `Generate a 4x4 Boggle-style grid of letters and a list of valid English words found in it for the date ${today}.
     
     Requirements:
@@ -188,11 +190,13 @@ export async function generateDailySquares(): Promise<DailySquares> {
 }
 
 export async function getDailySquares(): Promise<DailySquares> {
+  const today = new Date().toISOString().split("T")[0];
+
   const getCached = unstable_cache(
     async () => {
-      return generateDailySquares();
+      return generateDailySquares(today);
     },
-    ["daily-squares-puzzle"],
+    ["daily-squares-puzzle", today],
     {
       revalidate: 86400, // 24 hours
       tags: ["daily-squares-puzzle"],
