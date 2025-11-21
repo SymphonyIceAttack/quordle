@@ -22,14 +22,18 @@ Copy the namespace IDs and update `wrangler.toml`.
 
 ### 2. Set Environment Secrets
 
-\`\`\`bash
-# Set your DeepSeek API key
-wrangler secret put DEEPSEEK_API_KEY
+```
+DEEPSEEK_API_KEY=
+NEXT_PUBLIC_DEV_MODE=
+API_SECRET=
+NEXT_PUBLIC_APP_URL=
+# cloudflare
+NEXT_INC_CACHE_R2_PREFIX=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+CF_ACCOUNT_ID=
 
-# If using other services, set their keys too
-wrangler secret put XAI_API_KEY
-wrangler secret put GROQ_API_KEY
-\`\`\`
+```
 
 ### 3. Update Import Paths
 
