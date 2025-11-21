@@ -21,15 +21,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  turbopack: {
-    // resolveAlias:
-    // process.env.NEXT_PUBLIC_DEV_MODE !== "development"
-    //   ? {
-    //       "@/lib/ai-wordpool": "./lib/ai-wordpool.cloudflare.ts",
-    //       "@/lib/squares-wordpool": "./lib/squares-wordpool.cloudflare.ts",
-    //     }
-    //   : {},
-  },
 };
 
 export default nextConfig;
