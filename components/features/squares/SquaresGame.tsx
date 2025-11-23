@@ -1,10 +1,11 @@
 "use client";
 
-import { Bug, Lightbulb, RefreshCw, RotateCcw, Share2 } from "lucide-react";
+import { Bug, Lightbulb, RefreshCw, Share2, Undo2 } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { soundManager } from "@/lib/sound-manager";
 import type { DailySquares } from "@/lib/squares-wordpool";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +23,24 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
   const [showDebug, setShowDebug] = React.useState(false);
   const isDevelopment = process.env.NEXT_PUBLIC_DEV_MODE === "development";
   const gridRef = React.useRef<HTMLDivElement>(null);
+
+  // Initialize audio context on first user interaction
+  React.useEffect(() => {
+    const initAudio = () => {
+      soundManager?.initAudio();
+      // Remove listeners after first interaction
+      window.removeEventListener("click", initAudio);
+      window.removeEventListener("touchstart", initAudio);
+    };
+
+    window.addEventListener("click", initAudio, { once: true });
+    window.addEventListener("touchstart", initAudio, { once: true });
+
+    return () => {
+      window.removeEventListener("click", initAudio);
+      window.removeEventListener("touchstart", initAudio);
+    };
+  }, []);
 
   const boardLetters = initialData.grid;
 
@@ -93,6 +112,7 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
         selectedTiles.length === 0 ||
         isAdjacent(index, selectedTiles[selectedTiles.length - 1])
       ) {
+        soundManager?.playConnect();
         setSelectedTiles([...selectedTiles, index]);
       }
     }
@@ -119,6 +139,8 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
     ) {
       setFoundWords((prev) => [...prev, currentWord]);
       setSelectedTiles([]);
+      soundManager?.playGearTooth();
+      soundManager?.vibrate(100);
       if (hintTile !== null && selectedTiles[0] === hintTile) {
         setHintTile(null);
       }
@@ -129,7 +151,9 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
     setIsDragging(true);
+    // Ensure we only track the first touch
     const touch = e.touches[0];
     const index = getIndexFromPoint(touch.clientX, touch.clientY);
     if (index !== -1) {
@@ -138,15 +162,20 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
     if (!isDragging) return;
+    // Only track first touch
     const touch = e.touches[0];
+    if (!touch) return;
+
     const index = getIndexFromPoint(touch.clientX, touch.clientY);
     if (index !== -1) {
       handleTileSelect(index);
     }
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault();
     setIsDragging(false);
     if (
       currentWord.length >= 3 &&
@@ -155,6 +184,8 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
     ) {
       setFoundWords((prev) => [...prev, currentWord]);
       setSelectedTiles([]);
+      soundManager?.playGearTooth();
+      soundManager?.vibrate(100);
       if (hintTile !== null && selectedTiles[0] === hintTile) {
         setHintTile(null);
       }
@@ -170,13 +201,25 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
     if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom)
       return -1;
 
-    const relativeX = x - rect.left;
-    const relativeY = y - rect.top;
+    // More precise calculation considering padding and gaps
+    const padding = 4; // account for grid padding
+    const totalWidth = rect.width;
+    const totalHeight = rect.height;
+    const innerWidth = totalWidth - padding * 2;
+    const innerHeight = totalHeight - padding * 2;
 
-    const col = Math.floor((relativeX / rect.width) * 4);
-    const row = Math.floor((relativeY / rect.height) * 4);
+    const relativeX = x - rect.left - padding;
+    const relativeY = y - rect.top - padding;
 
-    return Math.max(0, Math.min(15, row * 4 + col));
+    // Each cell occupies 25% of inner dimension with gaps between
+    const cellWidth = innerWidth / 4;
+    const cellHeight = innerHeight / 4;
+
+    // Calculate column and row with better precision
+    const col = Math.min(3, Math.max(0, Math.floor(relativeX / cellWidth)));
+    const row = Math.min(3, Math.max(0, Math.floor(relativeY / cellHeight)));
+
+    return row * 4 + col;
   };
 
   React.useEffect(() => {
@@ -187,6 +230,12 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
 
   const handleShuffle = () => {
     setSelectedTiles([]);
+  };
+
+  const handleUndo = () => {
+    if (selectedTiles.length > 0) {
+      setSelectedTiles((prev) => prev.slice(0, -1));
+    }
   };
 
   const handleHint = () => {
@@ -201,20 +250,29 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
       return;
     }
 
+    // Prefer shorter words for hints to make them easier to find
+    const sortedWords = [...unfoundWords].sort((a, b) => a.length - b.length);
+    const wordsToConsider = sortedWords.slice(
+      0,
+      Math.min(5, sortedWords.length),
+    );
     const randomWord =
-      unfoundWords[Math.floor(Math.random() * unfoundWords.length)];
+      wordsToConsider[Math.floor(Math.random() * wordsToConsider.length)];
     const path = findWordPath(randomWord);
 
     if (path && path.length > 0) {
       setHintsRemaining((prev) => prev - 1);
       setHintTile(path[0]);
       toast.info(
-        `Hint: Look for a word starting with '${randomWord[0]}' at the highlighted tile!`,
+        `💡 Hint: Find a ${randomWord.length}-letter word starting with '${randomWord[0]}' at the highlighted tile!`,
+        {
+          duration: 4000,
+        },
       );
 
       setTimeout(() => {
         setHintTile(null);
-      }, 3000);
+      }, 4000);
     } else {
       toast.error("Could not generate a hint.");
     }
@@ -318,18 +376,32 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
             </div>
           </div>
 
-          <div className="h-16 flex items-center justify-center">
-            <h2 className="text-4xl font-bold tracking-widest uppercase min-h-[2.5rem]">
-              {currentWord}
+          <div className="h-20 flex items-center justify-center">
+            <h2
+              className={cn(
+                "text-4xl md:text-5xl font-bold tracking-widest uppercase min-h-[3rem] transition-all duration-200",
+                currentWord.length > 0
+                  ? "text-foreground animate-pulse"
+                  : "text-muted-foreground",
+                validWords.has(currentWord) &&
+                  currentWord.length >= 3 &&
+                  "text-green-600",
+              )}
+            >
+              {currentWord || "Select letters"}
             </h2>
           </div>
 
           <div
-            className="relative w-full max-w-[400px] mx-auto aspect-square touch-none"
+            className="relative w-full max-w-[450px] mx-auto aspect-square"
             ref={gridRef}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
+            onTouchCancel={() => setIsDragging(false)}
+            style={{
+              touchAction: "none", // Prevent default touch behaviors (scroll, zoom)
+            }}
           >
             <svg
               viewBox="0 0 100 100"
@@ -349,12 +421,12 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
                   strokeWidth="8"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="opacity-90"
+                  className="opacity-90 drop-shadow-lg"
                 />
               )}
             </svg>
 
-            <div className="grid grid-cols-4 gap-3 w-full h-full">
+            <div className="grid grid-cols-4 gap-2 sm:gap-3 w-full h-full p-1">
               {boardLetters.map((letter, index) => {
                 const isSelected = selectedTiles.includes(index);
                 const isHint = hintTile === index;
@@ -365,19 +437,26 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
                     onMouseEnter={() => handleMouseEnter(index)}
                     onMouseUp={handleMouseUp}
                     className={cn(
-                      "relative flex items-center justify-center text-4xl font-bold rounded-xl shadow-sm transition-all duration-200 cursor-pointer z-20",
-                      "bg-blue-50/50 dark:bg-secondary/50 hover:bg-blue-100/50 dark:hover:bg-secondary/80",
+                      "relative flex items-center justify-center text-3xl sm:text-4xl md:text-5xl font-bold rounded-xl shadow-sm transition-all duration-200 cursor-pointer z-20 min-h-[60px] sm:min-h-[70px] md:min-h-[80px]",
+                      "bg-blue-50/50 dark:bg-secondary/50 hover:bg-blue-100/70 dark:hover:bg-secondary/80 active:scale-95",
                       isSelected &&
-                        "bg-[#FDE68A] dark:bg-yellow-900/50 text-foreground transform scale-100 shadow-none",
+                        "bg-[#FDE68A] dark:bg-yellow-900/50 text-foreground transform scale-105 shadow-lg ring-2 ring-yellow-400",
                       isHint &&
                         !isSelected &&
-                        "ring-4 ring-yellow-400 ring-opacity-50 animate-pulse bg-yellow-100",
+                        "ring-4 ring-yellow-400 ring-opacity-75 animate-pulse bg-gradient-to-br from-yellow-100 to-amber-100 dark:from-yellow-900/60 dark:to-amber-900/60 shadow-xl",
+                      "select-none -webkit-tap-highlight-transparent",
                     )}
+                    style={{
+                      WebkitTapHighlightColor: "transparent",
+                      touchAction: "manipulation",
+                    }}
                   >
                     {isSelected && (
-                      <span className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-[#FCD34D] dark:bg-yellow-600 -z-10" />
+                      <span className="absolute inset-0 m-auto w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#FCD34D] dark:bg-yellow-600 -z-10 shadow-md" />
                     )}
-                    {letter}
+                    <span className="relative z-10 drop-shadow-sm">
+                      {letter}
+                    </span>
                   </div>
                 );
               })}
@@ -413,6 +492,16 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
               </Button>
             </div>
             <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                size="icon"
+                className="rounded-xl h-12 w-12 bg-blue-50/50 dark:bg-secondary/50 hover:bg-blue-100/50"
+                onClick={handleUndo}
+                disabled={selectedTiles.length === 0}
+                title="Undo last selection"
+              >
+                <Undo2 className="h-5 w-5 text-foreground" />
+              </Button>
               {isDevelopment && (
                 <Button
                   variant={showDebug ? "destructive" : "secondary"}
@@ -429,15 +518,9 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
                 size="icon"
                 className="rounded-xl h-12 w-12 bg-blue-50/50 dark:bg-secondary/50 hover:bg-blue-100/50"
                 onClick={handleShuffle}
+                title="Clear selection"
               >
                 <RefreshCw className="h-5 w-5 text-foreground" />
-              </Button>
-              <Button
-                variant="secondary"
-                size="icon"
-                className="rounded-xl h-12 w-12 bg-blue-50/50 dark:bg-secondary/50 hover:bg-blue-100/50"
-              >
-                <RotateCcw className="h-5 w-5 text-foreground" />
               </Button>
             </div>
           </div>

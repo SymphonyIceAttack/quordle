@@ -29,12 +29,22 @@ class SoundManager {
   }
 
   private async resumeAudioContext() {
-    if (this.audioContext && this.audioContext.state === "suspended") {
-      await this.audioContext.resume();
+    if (!this.audioContext) return;
+    if (this.audioContext.state === "suspended") {
+      try {
+        await this.audioContext.resume();
+      } catch (error) {
+        console.warn("Failed to resume audio context:", error);
+      }
     }
   }
 
-  private playTone(
+  // Initialize audio on first user interaction
+  initAudio() {
+    this.resumeAudioContext();
+  }
+
+  private async playTone(
     frequency: number,
     duration: number,
     type: OscillatorType = "sine",
@@ -42,7 +52,7 @@ class SoundManager {
   ) {
     if (!this.enabled || !this.audioContext) return;
 
-    this.resumeAudioContext();
+    await this.resumeAudioContext();
 
     const oscillator = this.audioContext.createOscillator();
     const gainNode = this.audioContext.createGain();
@@ -79,6 +89,7 @@ class SoundManager {
   ) {
     frequencies.forEach((freq, index) => {
       setTimeout(() => {
+        // Fire and forget - don't await
         this.playTone(freq, duration, type, volume);
       }, index * 50);
     });
@@ -94,6 +105,12 @@ class SoundManager {
     this.playTone(450, 0.06, "sine", 0.18);
   }
 
+  // Connection/line drawing sound (gentle gear tick)
+  playConnect() {
+    // Gentle mechanical tick - lower pitch, softer tone
+    this.playTone(800, 0.05, "sine", 0.12);
+  }
+
   // Guess submission sound
   playSubmit() {
     this.playTone(350, 0.12, "sine", 0.25);
@@ -103,6 +120,20 @@ class SoundManager {
   playSuccess() {
     const frequencies = [392, 493.88, 587.33]; // G4, B4, D5 (gentler)
     this.playChord(frequencies, 0.25, "sine", 0.3);
+  }
+
+  // Gear/cog rotation sound effect
+  playGearTooth() {
+    // Mechanical gear sound with slight metallic quality
+    const frequencies = [523.25, 659.25]; // C5, E5
+    this.playChord(frequencies, 0.15, "triangle", 0.22);
+  }
+
+  // Vibrate on mobile devices
+  vibrate(pattern: number | number[] = 100) {
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      navigator.vibrate(pattern);
+    }
   }
 
   // Error notification sound (gentle, not jarring)
