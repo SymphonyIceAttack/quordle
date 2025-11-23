@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
     typedEnv: true,
   },
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   images: {
     unoptimized: true,

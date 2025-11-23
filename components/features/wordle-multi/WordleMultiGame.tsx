@@ -2,11 +2,11 @@
 
 import { Loader2 } from "lucide-react";
 
-import type React from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { soundManager } from "@/lib/sound-manager";
 import { updateStats } from "@/lib/stats";
 import { cn } from "@/lib/utils";
 import {
@@ -16,6 +16,7 @@ import {
 } from "@/lib/wordle-multi";
 import type { DailyWordPool } from "@/types/AIWordPool";
 import type { MultiWordleGame, WordlePuzzle } from "@/types/WordleMulti";
+import { Celebration } from "../celebration";
 import { GameStatus } from "./GameStatus";
 import { WordleKeyboard } from "./WordleKeyboard";
 import { WordlePuzzleBoard } from "./WordlePuzzleBoard";
@@ -32,30 +33,10 @@ export const WordleMultiGame: React.FC<WordleMultiGameProps> = ({
   const [game, setGame] = useState<MultiWordleGame | null>(null);
   const [currentGuess, setCurrentGuess] = useState("");
   const [loading, setLoading] = useState(!initialData);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [restartCooldown, setRestartCooldown] = useState(0);
 
-  useEffect(() => {
-    initializeGame();
-  }, [gameMode]);
-
-  // Handle physical keyboard events
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!game || game.overallStatus !== "playing") return;
-
-      if (e.key === "Enter") {
-        handleKeyPress("ENTER");
-      } else if (e.key === "Backspace") {
-        handleKeyPress("BACKSPACE");
-      } else if (/^[a-zA-Z]$/.test(e.key)) {
-        handleKeyPress(e.key.toUpperCase());
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [game, currentGuess]);
-
-  const initializeGame = async () => {
+  const initializeGame = useCallback(async () => {
     if (initialData && gameMode === "daily") {
       try {
         const wordPool = initialData;
@@ -76,6 +57,7 @@ export const WordleMultiGame: React.FC<WordleMultiGameProps> = ({
           overallStatus: "playing",
         });
         setLoading(false);
+        setRestartCooldown(0);
         return;
       } catch (error) {
         console.error("Error initializing from initialData:", error);
@@ -106,6 +88,7 @@ export const WordleMultiGame: React.FC<WordleMultiGameProps> = ({
         createdAt: new Date().toISOString(),
         overallStatus: "playing",
       });
+      setRestartCooldown(0);
     } catch (error) {
       console.error(error);
       toast.error("Error", {
@@ -114,7 +97,59 @@ export const WordleMultiGame: React.FC<WordleMultiGameProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [initialData, gameMode]);
+
+  useEffect(() => {
+    initializeGame();
+  }, [gameMode, initializeGame]);
+
+  // Handle restart cooldown when game ends
+  useEffect(() => {
+    if (game && game.overallStatus !== "playing") {
+      setRestartCooldown(3);
+      const timer = setInterval(() => {
+        setRestartCooldown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [game?.overallStatus]);
+
+  // Handle physical keyboard events
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!game) return;
+
+      // If game is over, any key restarts the game (after cooldown)
+      if (game.overallStatus !== "playing") {
+        if (
+          restartCooldown === 0 &&
+          (e.key.length === 1 || e.key === "Enter" || e.key === "Backspace")
+        ) {
+          soundManager?.playLetterInput();
+          // Restart with fresh puzzles
+          initializeGame();
+        }
+        return;
+      }
+
+      if (e.key === "Enter") {
+        handleKeyPress("ENTER");
+      } else if (e.key === "Backspace") {
+        handleKeyPress("BACKSPACE");
+      } else if (/^[a-zA-Z]$/.test(e.key)) {
+        handleKeyPress(e.key.toUpperCase());
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [game, currentGuess, initializeGame]);
 
   const createPuzzle = (
     answer: string,
@@ -134,10 +169,20 @@ export const WordleMultiGame: React.FC<WordleMultiGameProps> = ({
     // Validate guess
     const validationResults = validateGuess(currentGuess, game.puzzles);
 
-    // Update each puzzle
-    const updatedPuzzles = game.puzzles.map((puzzle, index) =>
-      updatePuzzleStatus(puzzle, currentGuess, validationResults[index]),
-    );
+    // Update each puzzle and check for new wins
+    const updatedPuzzles = game.puzzles.map((puzzle, index) => {
+      const wasPlaying = puzzle.status === "playing";
+      const updated = updatePuzzleStatus(
+        puzzle,
+        currentGuess,
+        validationResults[index],
+      );
+      // If puzzle was playing and is now won, play success sound
+      if (wasPlaying && updated.status === "won") {
+        soundManager?.playPuzzleSolved();
+      }
+      return updated;
+    });
 
     // Calculate overall status
     const overallStatus = calculateOverallStatus(
@@ -162,10 +207,13 @@ export const WordleMultiGame: React.FC<WordleMultiGameProps> = ({
       updateStats(isWin, guessCount);
 
       if (overallStatus === "won") {
+        soundManager?.playGameVictory();
+        setShowCelebration(true);
         toast.success("Congratulations!", {
           description: "You solved all puzzles!",
         });
       } else {
+        soundManager?.playGameOver();
         toast.info("Game Over", {
           description: "Better luck next time!",
         });
@@ -178,15 +226,20 @@ export const WordleMultiGame: React.FC<WordleMultiGameProps> = ({
 
     if (key === "ENTER") {
       if (currentGuess.length === 5) {
+        soundManager?.playSubmit();
         submitGuess();
       } else {
+        soundManager?.playError();
         toast.error("Too short", {
           description: "Word must be 5 letters long",
         });
       }
     } else if (key === "BACKSPACE") {
+      soundManager?.playKeyPress();
       setCurrentGuess((prev) => prev.slice(0, -1));
     } else if (currentGuess.length < 5 && /^[A-Z]$/.test(key)) {
+      soundManager?.playKeyPress();
+      soundManager?.playLetterInput();
       setCurrentGuess((prev) => prev + key);
     }
   };
@@ -227,67 +280,79 @@ export const WordleMultiGame: React.FC<WordleMultiGameProps> = ({
   if (!game) return null;
 
   return (
-    <div className="flex flex-col h-full w-full max-w-4xl mx-auto p-1 sm:p-2 gap-1 sm:gap-2 overflow-hidden">
-      <div className="shrink-0">
-        <GameStatus game={game} />
+    <div className="h-full w-full max-w-5xl mx-auto flex flex-col">
+      {/* Top Section - Game Status */}
+      <div className="shrink-0 px-2 sm:px-4 pt-2">
+        <GameStatus game={game} restartCooldown={restartCooldown} />
       </div>
 
-      {/* Puzzles Grid */}
-      <div className="flex-1 min-h-0 grid grid-cols-2 gap-1 sm:gap-2">
-        {game.puzzles.map((puzzle, index) => (
-          <Card
-            key={puzzle.id}
-            className={cn(
-              "relative transition-opacity duration-300 border-none shadow-none bg-transparent w-full h-full flex items-center justify-center",
-              puzzle.status !== "playing" && "opacity-80",
-            )}
-          >
-            <CardContent className="p-0 flex flex-col items-center justify-center h-full w-full">
-              <div className="flex items-center justify-between w-full mb-0.5 sm:mb-1 px-1">
-                <h3 className="font-semibold text-[10px] sm:text-xs text-muted-foreground">
-                  Puzzle {index + 1}
-                  {process.env.NEXT_PUBLIC_DEV_MODE === "development" && (
-                    <span className="ml-1 text-red-500">[{puzzle.answer}]</span>
-                  )}
-                </h3>
-                <Badge
-                  variant={
-                    puzzle.difficulty === "easy"
-                      ? "default"
-                      : puzzle.difficulty === "medium"
-                        ? "secondary"
-                        : "destructive"
-                  }
-                  className="text-[8px] px-1 py-0 h-4"
-                >
-                  {puzzle.difficulty}
-                </Badge>
-              </div>
-              <WordlePuzzleBoard puzzle={puzzle} currentGuess={currentGuess} />
-              {puzzle.status !== "playing" && (
-                <div className="mt-0.5 sm:mt-1 text-center font-bold text-[10px] sm:text-xs">
-                  {puzzle.status === "won" ? (
-                    <span className="text-green-600">Solved!</span>
-                  ) : (
-                    <span className="text-red-600">
-                      Answer: {puzzle.answer}
-                    </span>
-                  )}
-                </div>
+      {/* Middle Section - Puzzles Grid (constrained height to leave room for keyboard) */}
+      <div className="px-1 sm:px-2 md:px-4 py-2 overflow-y-auto max-h-[calc(100vh-300px)]">
+        <div className="grid grid-cols-2 gap-1 sm:gap-2 md:gap-3 max-w-4xl mx-auto">
+          {game.puzzles.map((puzzle, index) => (
+            <Card
+              key={puzzle.id}
+              className={cn(
+                "relative transition-opacity duration-300 border-none shadow-none bg-transparent w-full",
+                puzzle.status !== "playing" && "opacity-80",
               )}
-            </CardContent>
-          </Card>
-        ))}
+            >
+              <CardContent className="p-1 sm:p-2 flex flex-col items-center">
+                <div className="flex items-center justify-between w-full mb-0.5 sm:mb-1 px-1 sm:px-2">
+                  <h3 className="font-semibold text-[10px] sm:text-xs text-muted-foreground">
+                    Puzzle {index + 1}
+                    {process.env.NEXT_PUBLIC_DEV_MODE === "development" && (
+                      <span className="ml-1 text-red-500">
+                        [{puzzle.answer}]
+                      </span>
+                    )}
+                  </h3>
+                  <Badge
+                    variant={
+                      puzzle.difficulty === "easy"
+                        ? "default"
+                        : puzzle.difficulty === "medium"
+                          ? "secondary"
+                          : "destructive"
+                    }
+                    className="text-[8px] px-1 py-0 h-4"
+                  >
+                    {puzzle.difficulty}
+                  </Badge>
+                </div>
+                <WordlePuzzleBoard
+                  puzzle={puzzle}
+                  currentGuess={currentGuess}
+                />
+                {puzzle.status !== "playing" && (
+                  <div className="mt-0.5 sm:mt-1 text-center font-bold text-[10px] sm:text-xs">
+                    {puzzle.status === "won" ? (
+                      <span className="text-green-600">Solved!</span>
+                    ) : process.env.NEXT_PUBLIC_DEV_MODE === "development" ? (
+                      <span className="text-red-600">
+                        Answer: {puzzle.answer}
+                      </span>
+                    ) : (
+                      <span className="text-red-600">Try again!</span>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
 
-      {/* Keyboard */}
-      <div className="shrink-0 pt-1 sm:pt-2">
+      {/* Bottom Section - Keyboard (Fixed at bottom, separate section) */}
+      <div className="shrink-0 px-1 sm:px-2 md:px-4 py-1 sm:py-2">
         <WordleKeyboard
           onKeyPress={handleKeyPress}
           disabled={game.overallStatus !== "playing"}
           letterStatuses={getKeyboardStatuses()}
         />
       </div>
+
+      <Celebration show={showCelebration} />
     </div>
   );
 };
