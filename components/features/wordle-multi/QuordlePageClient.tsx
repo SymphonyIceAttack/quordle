@@ -88,6 +88,34 @@ export function QuordlePageClient({ initialData }: QuordlePageClientProps) {
 
   useEffect(() => {
     setMounted(true);
+
+    // Initialize audio context on first user interaction (keyboard or click)
+    const initAudio = () => {
+      const { soundManager } = require("@/lib/sound-manager");
+      soundManager?.initAudio();
+    };
+
+    // Add listeners for audio initialization
+    window.addEventListener("click", initAudio, { once: true, passive: true });
+    window.addEventListener("touchstart", initAudio, {
+      once: true,
+      passive: true,
+    });
+    window.addEventListener("keydown", initAudio, { once: true });
+
+    // Also try to initialize immediately in case the user is already interacting
+    setTimeout(() => {
+      const { soundManager } = require("@/lib/sound-manager");
+      if (soundManager?.isEnabled()) {
+        soundManager?.initAudio();
+      }
+    }, 100);
+
+    return () => {
+      window.removeEventListener("click", initAudio);
+      window.removeEventListener("touchstart", initAudio);
+      window.removeEventListener("keydown", initAudio);
+    };
   }, []);
 
   useEffect(() => {

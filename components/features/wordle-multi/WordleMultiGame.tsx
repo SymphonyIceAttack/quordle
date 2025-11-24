@@ -224,6 +224,9 @@ export const WordleMultiGame: React.FC<WordleMultiGameProps> = ({
   const handleKeyPress = (key: string) => {
     if (!game || game.overallStatus !== "playing") return;
 
+    // Ensure audio context is initialized on first user interaction
+    soundManager?.initAudio();
+
     if (key === "ENTER") {
       if (currentGuess.length === 5) {
         soundManager?.playSubmit();

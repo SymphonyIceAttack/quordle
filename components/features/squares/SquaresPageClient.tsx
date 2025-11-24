@@ -77,15 +77,22 @@ export function SquaresPageClient({ initialData }: SquaresPageClientProps) {
     // Initialize audio context on first user interaction (keyboard or click)
     const initAudio = () => {
       soundManager?.initAudio();
-      // Remove listeners after first interaction
-      window.removeEventListener("click", initAudio);
-      window.removeEventListener("touchstart", initAudio);
-      window.removeEventListener("keydown", initAudio);
     };
 
-    window.addEventListener("click", initAudio, { once: true });
-    window.addEventListener("touchstart", initAudio, { once: true });
+    // Add listeners for audio initialization
+    window.addEventListener("click", initAudio, { once: true, passive: true });
+    window.addEventListener("touchstart", initAudio, {
+      once: true,
+      passive: true,
+    });
     window.addEventListener("keydown", initAudio, { once: true });
+
+    // Also try to initialize immediately in case the user is already interacting
+    setTimeout(() => {
+      if (soundManager?.isEnabled()) {
+        soundManager?.initAudio();
+      }
+    }, 100);
 
     return () => {
       window.removeEventListener("click", initAudio);
