@@ -1,0 +1,68 @@
+{
+  "name": "Quordle Daily - Solve 4 Wordles at Once",
+  "short_name": "Quordle Daily",
+  "description": "Play Quordle Daily, the popular word puzzle game where you solve 4 words simultaneously. Powered by AI for endless challenges and daily fun.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#f59e0b",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/icon-16.png",
+      "sizes": "16x16",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-32.png",
+      "sizes": "32x32",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Play Quordle",
+      "short_name": "Quordle",
+      "description": "Solve 4 words at once",
+      "url": "/",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Play Squares",
+      "short_name": "Squares",
+      "description": "4x4 word search puzzle",
+      "url": "/squares",
+      "icons": [
+        {
+          "src": "/squares-icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "categories": ["games", "entertainment", "puzzle"],
+  "screenshots": []
+}
