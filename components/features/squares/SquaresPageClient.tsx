@@ -17,6 +17,7 @@ import type React from "react";
 import { useEffect, useState } from "react";
 import { SquaresGame } from "@/components/features/squares/SquaresGame";
 import { Button } from "@/components/ui/button";
+import { soundManager } from "@/lib/sound-manager";
 import type { DailySquares } from "@/lib/squares-wordpool";
 import { cn } from "@/lib/utils";
 
@@ -72,6 +73,25 @@ export function SquaresPageClient({ initialData }: SquaresPageClientProps) {
 
   useEffect(() => {
     setMounted(true);
+
+    // Initialize audio context on first user interaction (keyboard or click)
+    const initAudio = () => {
+      soundManager?.initAudio();
+      // Remove listeners after first interaction
+      window.removeEventListener("click", initAudio);
+      window.removeEventListener("touchstart", initAudio);
+      window.removeEventListener("keydown", initAudio);
+    };
+
+    window.addEventListener("click", initAudio, { once: true });
+    window.addEventListener("touchstart", initAudio, { once: true });
+    window.addEventListener("keydown", initAudio, { once: true });
+
+    return () => {
+      window.removeEventListener("click", initAudio);
+      window.removeEventListener("touchstart", initAudio);
+      window.removeEventListener("keydown", initAudio);
+    };
   }, []);
 
   const toggleDarkMode = () => {

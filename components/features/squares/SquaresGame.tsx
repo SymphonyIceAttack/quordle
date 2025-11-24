@@ -24,24 +24,6 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
   const isDevelopment = process.env.NEXT_PUBLIC_DEV_MODE === "development";
   const gridRef = React.useRef<HTMLDivElement>(null);
 
-  // Initialize audio context on first user interaction
-  React.useEffect(() => {
-    const initAudio = () => {
-      soundManager?.initAudio();
-      // Remove listeners after first interaction
-      window.removeEventListener("click", initAudio);
-      window.removeEventListener("touchstart", initAudio);
-    };
-
-    window.addEventListener("click", initAudio, { once: true });
-    window.addEventListener("touchstart", initAudio, { once: true });
-
-    return () => {
-      window.removeEventListener("click", initAudio);
-      window.removeEventListener("touchstart", initAudio);
-    };
-  }, []);
-
   const boardLetters = initialData.grid;
 
   const allWords = React.useMemo(
