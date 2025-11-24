@@ -75,9 +75,6 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
   };
 
   const handleTileSelect = (index: number) => {
-    // Ensure audio context is initialized on first user interaction
-    soundManager?.initAudio();
-
     if (selectedTiles.includes(index)) {
       if (index === selectedTiles[selectedTiles.length - 1]) {
       } else if (
