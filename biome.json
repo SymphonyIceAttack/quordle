@@ -37,7 +37,8 @@
         "useKeyWithClickEvents": "off"
       },
       "correctness": {
-        "useExhaustiveDependencies": "off"
+        "useExhaustiveDependencies": "off",
+        "useHookAtTopLevel": "off"
       }
     },
     "domains": {

@@ -1,15 +1,15 @@
-import { deepseek } from "@ai-sdk/deepseek";
-import { generateText } from "ai";
-
-const model = deepseek("deepseek-chat");
+// 注意：现在主要使用 wordlist-dictionary.ts 中的 generateDailySquaresFromList 函数
+// 此文件保留用于 DFS 验证算法和其他工具函数
 
 export interface DailySquares {
   grid: string[];
   words: string[];
+  coreWords: string[];
+  bonusWords: string[];
   date: string;
   metadata?: {
     generatedAt: string;
-    aiModel: string;
+    source: string; // 数据来源标识
   };
 }
 
@@ -74,18 +74,66 @@ export const FALLBACK_DATA: DailySquares = {
     "TEAM",
     "MEAT",
   ],
+  coreWords: [
+    "FOOT",
+    "NOTE",
+    "TEND",
+    "MOTE",
+    "FORM",
+    "FORT",
+    "FONT",
+    "TOE",
+    "TON",
+    "TEN",
+    "NOT",
+    "NET",
+    "MEN",
+    "MET",
+    "ROT",
+    "ROD",
+    "SOD",
+    "SET",
+    "BET",
+    "BAT",
+    "BAN",
+    "FAN",
+    "FAT",
+    "FAR",
+    "FOR",
+    "FORE",
+    "TEAR",
+    "NEAR",
+    "FEAR",
+    "BEAR",
+  ],
+  bonusWords: [
+    "BEAT",
+    "SEAT",
+    "SENT",
+    "RENT",
+    "DENT",
+    "BENT",
+    "FERN",
+    "TERM",
+    "TEAM",
+    "MEAT",
+  ],
   date: new Date().toISOString().split("T")[0],
+  metadata: {
+    generatedAt: new Date().toISOString(),
+    source: "fallback",
+  },
 };
 
 function getNeighbors(index: number): number[] {
   const neighbors: number[] = [];
-  const row = Math.floor(index / 4);
-  const col = index % 4;
+  const row = Math.floor(index / 5);
+  const col = index % 5;
 
   for (let r = row - 1; r <= row + 1; r++) {
     for (let c = col - 1; c <= col + 1; c++) {
-      if (r >= 0 && r < 4 && c >= 0 && c < 4) {
-        const neighborIndex = r * 4 + c;
+      if (r >= 0 && r < 5 && c >= 0 && c < 5) {
+        const neighborIndex = r * 5 + c;
         if (neighborIndex !== index) {
           neighbors.push(neighborIndex);
         }
@@ -95,7 +143,7 @@ function getNeighbors(index: number): number[] {
   return neighbors;
 }
 
-function canFindWord(word: string, grid: string[]): boolean {
+function _canFindWord(word: string, grid: string[]): boolean {
   const upperWord = word.toUpperCase();
 
   const search = (
@@ -129,58 +177,10 @@ function canFindWord(word: string, grid: string[]): boolean {
 export async function generateDailySquares(
   date?: string,
 ): Promise<DailySquares> {
-  const today = date || new Date().toISOString().split("T")[0];
-  const prompt = `Generate a 4x4 Boggle-style grid of letters and a list of valid English words found in it for the date ${today}.
-    
-    Requirements:
-    1. The grid must contain 16 letters (A-Z).
-    2. The grid must contain at least 30 valid English words of 3 letters or more.
-    3. Words must be formed by connecting adjacent letters (horizontally, vertically, or diagonally).
-    4. Words must be common enough for a general audience.
-    
-    Return a JSON object with this structure:
-    {
-      "grid": ["A", "B", "C", "D", ...], // Array of 16 strings, row by row
-      "words": ["WORD1", "WORD2", ...] // Array of valid words found in the grid
-    }
-    
-    IMPORTANT: Return ONLY the JSON object, no markdown formatting.`;
-
-  try {
-    const { text } = await generateText({
-      model: model,
-      prompt,
-    });
-
-    const cleanText = text.replace(/```json\n?|\n?```/g, "").trim();
-    const parsed = JSON.parse(cleanText);
-
-    if (
-      !Array.isArray(parsed.grid) ||
-      parsed.grid.length !== 16 ||
-      !Array.isArray(parsed.words)
-    ) {
-      throw new Error("Invalid response structure");
-    }
-
-    const grid = parsed.grid.map((l: string) => l.toUpperCase());
-    const validWords = (parsed.words as string[])
-      .map((w) => w.toUpperCase())
-      .filter((word) => word.length >= 3 && canFindWord(word, grid));
-
-    const uniqueWords = Array.from(new Set(validWords));
-
-    return {
-      grid: grid,
-      words: uniqueWords,
-      date: today,
-      metadata: {
-        generatedAt: new Date().toISOString(),
-        aiModel: "deepseek-chat",
-      },
-    };
-  } catch (error) {
-    console.error("Failed to generate squares puzzle:", error);
-    throw error;
-  }
+  // This function is deprecated - use generateDailySquaresFromList in wordlist-dictionary.ts
+  // Kept for backwards compatibility
+  const { generateDailySquaresFromList } = await import(
+    "./wordlist-dictionary"
+  );
+  return generateDailySquaresFromList(date);
 }

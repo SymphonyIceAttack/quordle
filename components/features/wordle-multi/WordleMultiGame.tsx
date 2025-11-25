@@ -14,8 +14,8 @@ import {
   updatePuzzleStatus,
   validateGuess,
 } from "@/lib/wordle-multi";
-import type { DailyWordPool } from "@/types/AIWordPool";
 import type { MultiWordleGame, WordlePuzzle } from "@/types/WordleMulti";
+import type { DailyWordPool } from "@/types/WordPool";
 import { Celebration } from "../celebration";
 import { GameStatus } from "./GameStatus";
 import { WordleKeyboard } from "./WordleKeyboard";
@@ -40,11 +40,25 @@ export const WordleMultiGame: React.FC<WordleMultiGameProps> = ({
     if (initialData && gameMode === "daily") {
       try {
         const wordPool = initialData;
+
+        // Ensure all arrays have at least one word, with fallback
+        const easyWords = wordPool.words.easy || [];
+        const mediumWords = wordPool.words.medium || [];
+        const hardWords = wordPool.words.hard || [];
+
+        if (
+          easyWords.length === 0 &&
+          mediumWords.length === 0 &&
+          hardWords.length === 0
+        ) {
+          throw new Error("No words available in word pool");
+        }
+
         const puzzles: WordlePuzzle[] = [
-          createPuzzle(wordPool.words.easy[0], "easy"),
-          createPuzzle(wordPool.words.medium[0], "medium"),
-          createPuzzle(wordPool.words.hard[0], "hard"),
-          createPuzzle(wordPool.words.hard[1], "hard"),
+          createPuzzle(easyWords[0] || "APPLE", "easy"),
+          createPuzzle(mediumWords[0] || "BEACH", "medium"),
+          createPuzzle(hardWords[0] || "CHAIR", "hard"),
+          createPuzzle(hardWords[1] || "DANCE", "hard"),
         ];
 
         setGame({
@@ -71,12 +85,25 @@ export const WordleMultiGame: React.FC<WordleMultiGameProps> = ({
       if (!response.ok) throw new Error("Failed to fetch words");
       const wordPool = await response.json();
 
+      // Ensure all arrays have at least one word, with fallback
+      const easyWords = wordPool.words?.easy || [];
+      const mediumWords = wordPool.words?.medium || [];
+      const hardWords = wordPool.words?.hard || [];
+
+      if (
+        easyWords.length === 0 &&
+        mediumWords.length === 0 &&
+        hardWords.length === 0
+      ) {
+        throw new Error("No words available from API");
+      }
+
       // Create 4 puzzles with different difficulties
       const puzzles: WordlePuzzle[] = [
-        createPuzzle(wordPool.words.easy[0], "easy"),
-        createPuzzle(wordPool.words.medium[0], "medium"),
-        createPuzzle(wordPool.words.hard[0], "hard"),
-        createPuzzle(wordPool.words.hard[1], "hard"),
+        createPuzzle(easyWords[0] || "APPLE", "easy"),
+        createPuzzle(mediumWords[0] || "BEACH", "medium"),
+        createPuzzle(hardWords[0] || "CHAIR", "hard"),
+        createPuzzle(hardWords[1] || "DANCE", "hard"),
       ];
 
       setGame({

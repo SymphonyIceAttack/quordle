@@ -21,10 +21,36 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
   const [hintsRemaining, setHintsRemaining] = React.useState(3);
   const [hintTile, setHintTile] = React.useState<number | null>(null);
   const [showDebug, setShowDebug] = React.useState(false);
+  const [showBonusWords, setShowBonusWords] = React.useState(false);
   const isDevelopment = process.env.NEXT_PUBLIC_DEV_MODE === "development";
   const gridRef = React.useRef<HTMLDivElement>(null);
 
   const boardLetters = initialData.grid;
+
+  // 分离核心单词和奖励单词
+  const coreWords = React.useMemo(
+    () =>
+      Array.from(
+        new Set(initialData.coreWords || initialData.words.slice(0, 30)),
+      ),
+    [initialData.coreWords, initialData.words],
+  );
+
+  const bonusWords = React.useMemo(
+    () =>
+      Array.from(
+        new Set(initialData.bonusWords || initialData.words.slice(30)),
+      ),
+    [initialData.bonusWords, initialData.words],
+  );
+
+  // 当前可见的单词列表（核心单词 + 可选的奖励单词）
+  const visibleWords = React.useMemo(() => {
+    if (showBonusWords) {
+      return [...coreWords, ...bonusWords];
+    }
+    return coreWords;
+  }, [coreWords, bonusWords, showBonusWords]);
 
   const allWords = React.useMemo(
     () => Array.from(new Set(initialData.words)),
@@ -34,11 +60,33 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
   const validWords = React.useMemo(() => new Set(allWords), [allWords]);
 
   const totalWords = allWords.length;
+  const coreWordsTotal = coreWords.length;
+  const bonusWordsTotal = bonusWords.length;
+
+  // 检查是否找到所有核心单词
+  const coreWordsCompleted = React.useMemo(() => {
+    const foundCoreWords = foundWords.filter((w) => coreWords.includes(w));
+    return foundCoreWords.length === coreWordsTotal && coreWordsTotal > 0;
+  }, [foundWords, coreWords, coreWordsTotal]);
+
+  // 当完成所有核心单词时，自动显示提示
+  React.useEffect(() => {
+    if (coreWordsCompleted && !showBonusWords && bonusWordsTotal > 0) {
+      const timer = setTimeout(() => {
+        toast.success("🎉 All core words found! Bonus words unlocked!", {
+          duration: 5000,
+        });
+        setShowBonusWords(true);
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [coreWordsCompleted, showBonusWords, bonusWordsTotal]);
 
   const wordCategories = React.useMemo(() => {
     const categories: Record<number, { found: number; total: number }> = {};
 
-    allWords.forEach((word) => {
+    visibleWords.forEach((word) => {
       const len = word.length;
       if (!categories[len]) {
         categories[len] = { found: 0, total: 0 };
@@ -60,17 +108,17 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
         total: data.total,
       }))
       .sort((a, b) => a.length - b.length);
-  }, [allWords, foundWords]);
+  }, [visibleWords, foundWords]);
 
   const currentWord = selectedTiles
     .map((index) => boardLetters[index])
     .join("");
 
   const isAdjacent = (index1: number, index2: number) => {
-    const row1 = Math.floor(index1 / 4);
-    const col1 = index1 % 4;
-    const row2 = Math.floor(index2 / 4);
-    const col2 = index2 % 4;
+    const row1 = Math.floor(index1 / 5);
+    const col1 = index1 % 5;
+    const row2 = Math.floor(index2 / 5);
+    const col2 = index2 % 5;
     return Math.abs(row1 - row2) <= 1 && Math.abs(col1 - col2) <= 1;
   };
 
@@ -184,7 +232,7 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
       return -1;
 
     // More precise calculation considering padding and gaps
-    const padding = 4; // account for grid padding
+    const padding = 8; // account for grid padding
     const totalWidth = rect.width;
     const totalHeight = rect.height;
     const innerWidth = totalWidth - padding * 2;
@@ -193,15 +241,15 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
     const relativeX = x - rect.left - padding;
     const relativeY = y - rect.top - padding;
 
-    // Each cell occupies 25% of inner dimension with gaps between
-    const cellWidth = innerWidth / 4;
-    const cellHeight = innerHeight / 4;
+    // Each cell occupies 20% of inner dimension with gaps between
+    const cellWidth = innerWidth / 5;
+    const cellHeight = innerHeight / 5;
 
     // Calculate column and row with better precision
-    const col = Math.min(3, Math.max(0, Math.floor(relativeX / cellWidth)));
-    const row = Math.min(3, Math.max(0, Math.floor(relativeY / cellHeight)));
+    const col = Math.min(4, Math.max(0, Math.floor(relativeX / cellWidth)));
+    const row = Math.min(4, Math.max(0, Math.floor(relativeY / cellHeight)));
 
-    return row * 4 + col;
+    return row * 5 + col;
   };
 
   React.useEffect(() => {
@@ -226,20 +274,32 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
       return;
     }
 
-    const unfoundWords = allWords.filter((w) => !foundWords.includes(w));
+    // 优先为核心单词提供提示
+    const unfoundCoreWords = coreWords.filter((w) => !foundWords.includes(w));
+    const unfoundWords = visibleWords.filter((w) => !foundWords.includes(w));
+
     if (unfoundWords.length === 0) {
-      toast.success("You found all words!");
+      toast.success("You found all visible words!");
+      return;
+    }
+
+    // 首先尝试为核心单词提供提示
+    let wordsToConsider = unfoundCoreWords;
+    if (wordsToConsider.length === 0 && showBonusWords) {
+      wordsToConsider = bonusWords.filter((w) => !foundWords.includes(w));
+    }
+
+    if (wordsToConsider.length === 0) {
+      toast.success("All core words found!");
       return;
     }
 
     // Prefer shorter words for hints to make them easier to find
-    const sortedWords = [...unfoundWords].sort((a, b) => a.length - b.length);
-    const wordsToConsider = sortedWords.slice(
-      0,
-      Math.min(5, sortedWords.length),
+    const sortedWords = [...wordsToConsider].sort(
+      (a, b) => a.length - b.length,
     );
-    const randomWord =
-      wordsToConsider[Math.floor(Math.random() * wordsToConsider.length)];
+    const wordsPool = sortedWords.slice(0, Math.min(5, sortedWords.length));
+    const randomWord = wordsPool[Math.floor(Math.random() * wordsPool.length)];
     const path = findWordPath(randomWord);
 
     if (path && path.length > 0) {
@@ -268,8 +328,8 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
 
   const findWordPath = React.useCallback(
     (word: string): number[] | null => {
-      const rows = 4;
-      const cols = 4;
+      const rows = 5;
+      const cols = 5;
 
       const dfs = (
         index: number,
@@ -279,13 +339,13 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
         if (currentWord === word) return Array.from(visited);
         if (!word.startsWith(currentWord)) return null;
 
-        const row = Math.floor(index / 4);
-        const col = index % 4;
+        const row = Math.floor(index / 5);
+        const col = index % 5;
 
         for (let r = row - 1; r <= row + 1; r++) {
           for (let c = col - 1; c <= col + 1; c++) {
             if (r >= 0 && r < rows && c >= 0 && c < cols) {
-              const neighborIndex = r * 4 + c;
+              const neighborIndex = r * 5 + c;
               if (!visited.has(neighborIndex)) {
                 const nextChar = boardLetters[neighborIndex];
                 if (word[currentWord.length] === nextChar) {
@@ -305,7 +365,7 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
         return null;
       };
 
-      for (let i = 0; i < 16; i++) {
+      for (let i = 0; i < 25; i++) {
         if (boardLetters[i] === word[0]) {
           const path = dfs(i, word[0], new Set([i]));
           if (path) return path;
@@ -317,11 +377,32 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
   );
 
   const getTileCenter = (index: number) => {
-    const col = index % 4;
-    const row = Math.floor(index / 4);
+    if (!gridRef.current) {
+      const col = index % 5;
+      const row = Math.floor(index / 5);
+      return {
+        x: col * 20 + 10,
+        y: row * 20 + 10,
+      };
+    }
+
+    const rect = gridRef.current.getBoundingClientRect();
+    const padding = 8; // account for grid padding and gaps
+    const gap = 8; // grid gap size (gap-2 sm:gap-3 ~ 8-12px)
+    const cellWidth = (rect.width - padding * 2 - gap * 4) / 5;
+    const cellHeight = (rect.height - padding * 2 - gap * 4) / 5;
+
+    const col = index % 5;
+    const row = Math.floor(index / 5);
+
+    const x = padding + col * (cellWidth + gap) + cellWidth / 2;
+    const y = padding + row * (cellHeight + gap) + cellHeight / 2;
+
+    // Convert to viewBox coordinates (0-100)
+    const viewBoxSize = 100;
     return {
-      x: col * 25 + 12.5,
-      y: row * 25 + 12.5,
+      x: (x / rect.width) * viewBoxSize,
+      y: (y / rect.height) * viewBoxSize,
     };
   };
 
@@ -338,24 +419,46 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
                 {totalWords}
               </div>
             </div>
-            <div className="relative h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="absolute top-0 left-0 h-full bg-green-500 transition-all duration-300"
-                style={{ width: `${(foundWords.length / totalWords) * 100}%` }}
-              />
-              {[0.25, 0.5, 0.75, 1].map((pos, i) => (
+            {/* 核心单词进度条 */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center text-sm">
+                <span className="font-medium">Core Words</span>
+                <span className="text-muted-foreground">
+                  {foundWords.filter((w) => coreWords.includes(w)).length} /{" "}
+                  {coreWordsTotal}
+                </span>
+              </div>
+              <div className="relative h-2 bg-muted rounded-full overflow-hidden">
                 <div
-                  key={i}
-                  className="absolute top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/30 flex items-center justify-center"
+                  className="absolute top-0 left-0 h-full bg-green-500 transition-all duration-300"
                   style={{
-                    left: `${pos * 100}%`,
-                    transform: "translate(-50%, -50%)",
+                    width: `${(foundWords.filter((w) => coreWords.includes(w)).length / coreWordsTotal) * 100}%`,
                   }}
-                >
-                  <span className="text-xs">★</span>
-                </div>
-              ))}
+                />
+              </div>
             </div>
+            {/* 奖励单词进度条（条件显示） */}
+            {showBonusWords && bonusWordsTotal > 0 && (
+              <div className="space-y-2 mt-3">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="font-medium flex items-center gap-1">
+                    Bonus Words <span className="text-xs">⭐</span>
+                  </span>
+                  <span className="text-muted-foreground">
+                    {foundWords.filter((w) => bonusWords.includes(w)).length} /{" "}
+                    {bonusWordsTotal}
+                  </span>
+                </div>
+                <div className="relative h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="absolute top-0 left-0 h-full bg-blue-500 transition-all duration-300"
+                    style={{
+                      width: `${(foundWords.filter((w) => bonusWords.includes(w)).length / bonusWordsTotal) * 100}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="h-20 flex items-center justify-center">
@@ -408,7 +511,7 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
               )}
             </svg>
 
-            <div className="grid grid-cols-4 gap-2 sm:gap-3 w-full h-full p-1">
+            <div className="grid grid-cols-5 gap-2 sm:gap-3 w-full h-full p-1">
               {boardLetters.map((letter, index) => {
                 const isSelected = selectedTiles.includes(index);
                 const isHint = hintTile === index;
@@ -509,66 +612,111 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
         </div>
 
         <div className="flex flex-col gap-4">
-          <div className="flex justify-end items-center gap-2">
-            <Button
-              variant={sortMode === "order" ? "secondary" : "ghost"}
-              size="sm"
-              className={cn(
-                "font-bold",
-                sortMode === "order" && "bg-muted/50 hover:bg-muted",
-              )}
-              onClick={() => setSortMode("order")}
-            >
-              By order
-            </Button>
-            <Button
-              variant={sortMode === "length" ? "secondary" : "ghost"}
-              size="sm"
-              className={cn(
-                "font-bold",
-                sortMode === "length" && "bg-muted/50 hover:bg-muted",
-              )}
-              onClick={() => setSortMode("length")}
-            >
-              By length
-            </Button>
+          <div className="flex justify-between items-center gap-2">
+            <div className="flex gap-2">
+              <Button
+                variant={sortMode === "order" ? "secondary" : "ghost"}
+                size="sm"
+                className={cn(
+                  "font-bold",
+                  sortMode === "order" && "bg-muted/50 hover:bg-muted",
+                )}
+                onClick={() => setSortMode("order")}
+              >
+                By order
+              </Button>
+              <Button
+                variant={sortMode === "length" ? "secondary" : "ghost"}
+                size="sm"
+                className={cn(
+                  "font-bold",
+                  sortMode === "length" && "bg-muted/50 hover:bg-muted",
+                )}
+                onClick={() => setSortMode("length")}
+              >
+                By length
+              </Button>
+            </div>
+            {/* 奖励单词解锁按钮 */}
+            {!showBonusWords && bonusWordsTotal > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const coreWordsFound = foundWords.filter((w) =>
+                    coreWords.includes(w),
+                  ).length;
+                  if (coreWordsFound === coreWordsTotal) {
+                    setShowBonusWords(true);
+                    toast.success("🎉 Bonus words unlocked!");
+                  } else {
+                    toast.info(
+                      `Find ${coreWordsTotal - coreWordsFound} more core words to unlock bonus words!`,
+                    );
+                  }
+                }}
+                className="font-bold border-blue-300 text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950"
+              >
+                ⭐ Unlock Bonus Words
+              </Button>
+            )}
           </div>
 
           <Card className="flex flex-col p-6 shadow-sm border border-border/50 bg-white dark:bg-card h-[500px]">
             <div className="space-y-6 flex flex-col h-full">
               <div className="font-bold text-lg shrink-0">
-                Words found: {foundWords.length} / {allWords.length}
+                {showBonusWords
+                  ? `Words found: ${foundWords.length} / ${visibleWords.length}`
+                  : `Core words: ${foundWords.filter((w) => coreWords.includes(w)).length} / ${coreWordsTotal}`}
+                {bonusWordsTotal > 0 && !showBonusWords && (
+                  <span className="text-sm text-muted-foreground ml-2">
+                    (+{bonusWordsTotal} bonus words)
+                  </span>
+                )}
               </div>
 
               <div className="flex-1 overflow-y-auto pr-2 -mr-2">
                 {sortMode === "length" ? (
                   <div className="space-y-6">
                     {wordCategories.map((cat) => {
+                      // 获取该长度的所有单词（已找到和未找到的）
+                      const allWordsInCat = visibleWords.filter(
+                        (w) => w.length === cat.length,
+                      );
                       const wordsInCat = foundWords.filter(
                         (w) => w.length === cat.length,
                       );
+
                       return (
                         <div key={cat.length} className="space-y-2">
                           <div className="space-y-1">
-                            <div className="font-bold text-base">
-                              {cat.length}-letter
+                            <div className="font-bold text-base flex items-center gap-2">
+                              <span>{cat.length}-letter words</span>
+                              <span className="text-sm text-muted-foreground font-normal">
+                                ({wordsInCat.length}/{cat.total})
+                              </span>
                             </div>
-                            <div className="text-sm text-muted-foreground font-medium">
-                              (+{cat.total - wordsInCat.length} words left)
-                            </div>
+                            {cat.total > wordsInCat.length && (
+                              <div className="text-sm text-muted-foreground font-medium">
+                                {cat.total - wordsInCat.length} to find
+                              </div>
+                            )}
                           </div>
-                          {wordsInCat.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                              {wordsInCat.map((word, i) => (
-                                <span
-                                  key={i}
-                                  className="text-sm font-medium bg-muted/30 px-2 py-1 rounded"
-                                >
-                                  {word}
-                                </span>
-                              ))}
-                            </div>
-                          )}
+                          <div className="flex flex-wrap gap-2">
+                            {allWordsInCat.map((word) => (
+                              <span
+                                key={word}
+                                className={cn(
+                                  "text-sm font-medium px-2 py-1 rounded border transition-all",
+                                  foundWords.includes(word)
+                                    ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800"
+                                    : "bg-muted/50 text-muted-foreground border-border/50",
+                                )}
+                              >
+                                {word}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       );
                     })}
@@ -603,7 +751,7 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
                       <Bug className="h-4 w-4" /> Developer Mode
                     </h3>
                     <div className="flex flex-wrap gap-1">
-                      {allWords
+                      {visibleWords
                         .sort(
                           (a, b) => a.length - b.length || a.localeCompare(b),
                         )
@@ -620,6 +768,27 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
                             {word}
                           </span>
                         ))}
+                      {/* 显示隐藏的奖励单词（仅调试模式） */}
+                      {!showBonusWords && bonusWords.length > 0 && (
+                        <>
+                          <div className="w-full text-xs text-muted-foreground mt-2 mb-1">
+                            Bonus words (hidden):
+                          </div>
+                          {bonusWords
+                            .sort(
+                              (a, b) =>
+                                a.length - b.length || a.localeCompare(b),
+                            )
+                            .map((word) => (
+                              <span
+                                key={word}
+                                className="text-xs px-1.5 py-0.5 rounded border bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800/50 dark:text-gray-500 dark:border-gray-700"
+                              >
+                                {word}
+                              </span>
+                            ))}
+                        </>
+                      )}
                     </div>
                   </div>
                 )}

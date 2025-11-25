@@ -1,7 +1,7 @@
 import { revalidateTag } from "next/cache";
 import { type NextRequest, NextResponse } from "next/server";
-import { cacheDailyWords } from "@/lib/ai-wordpool";
 import { getDailySquares } from "@/lib/squares-wordpool";
+import { cacheDailyWords } from "@/lib/wordle-daily-words";
 
 export const revalidate = 86400; // 24 hours
 

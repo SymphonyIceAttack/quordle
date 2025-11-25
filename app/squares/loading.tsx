@@ -45,8 +45,8 @@ export default function SquaresLoading() {
             <Skeleton className="h-12 w-32 rounded-lg" />
 
             {/* Grid Skeleton */}
-            <div className="grid grid-cols-4 gap-2 sm:gap-3 p-2 sm:p-3 bg-muted/20 rounded-xl border border-border/50 shadow-sm w-full aspect-square max-w-[400px]">
-              {Array.from({ length: 16 }).map((_, i) => (
+            <div className="grid grid-cols-5 gap-2 sm:gap-3 p-2 sm:p-3 bg-muted/20 rounded-xl border border-border/50 shadow-sm w-full aspect-square max-w-[500px]">
+              {Array.from({ length: 25 }).map((_, i) => (
                 <Skeleton key={i} className="w-full h-full rounded-lg" />
               ))}
             </div>

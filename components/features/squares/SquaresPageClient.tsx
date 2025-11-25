@@ -71,6 +71,55 @@ export function SquaresPageClient({ initialData }: SquaresPageClientProps) {
   // Settings state
   const { setTheme, resolvedTheme } = useTheme();
 
+  // 计算每日编号（从 2022-01-01 开始）
+  const getDailyNumber = (date: string) => {
+    const startDate = new Date("2022-01-01T00:00:00");
+    const currentDate = new Date(`${date}T00:00:00`);
+    const diffTime = currentDate.getTime() - startDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays + 1; // +1 因为第一天是 1 不是 0
+  };
+
+  const dailyNumber = getDailyNumber(initialData.date);
+
+  // Defensive check for grid
+  if (!initialData?.grid || initialData.grid.length !== 25) {
+    console.error("Initial data missing or invalid grid:", initialData);
+    return (
+      <div className="container mx-auto p-4 max-w-4xl">
+        <div className="flex items-center gap-2 mb-8">
+          <Link
+            href="/"
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <h1 className="text-2xl font-bold">Squares</h1>
+        </div>
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Loading daily puzzle...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Validate grid integrity in development mode
+  if (process.env.NODE_ENV === "development") {
+    const invalidLetters = initialData.grid.filter(
+      (letter) => !letter || typeof letter !== "string" || letter.length !== 1,
+    );
+    if (invalidLetters.length > 0) {
+      console.error(
+        "Grid contains invalid letters:",
+        invalidLetters,
+        initialData.grid,
+      );
+    }
+    if (!initialData.words || initialData.words.length === 0) {
+      console.error("No words found in puzzle:", initialData);
+    }
+  }
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -111,6 +160,9 @@ export function SquaresPageClient({ initialData }: SquaresPageClientProps) {
               </div>
             </div>
             <h1 className="text-xl font-bold">Squares</h1>
+            <span className="text-sm text-muted-foreground font-mono">
+              #{dailyNumber}
+            </span>
           </div>
         </div>
 
@@ -211,7 +263,7 @@ export function SquaresPageClient({ initialData }: SquaresPageClientProps) {
       >
         <div className="flex flex-col gap-4 text-sm">
           <p>
-            Find words in the <strong>4x4 grid</strong>.
+            Find words in the <strong>5x5 grid</strong>.
           </p>
           <p>
             Connect adjacent letters (horizontally, vertically, or diagonally)
@@ -236,6 +288,17 @@ export function SquaresPageClient({ initialData }: SquaresPageClientProps) {
                 </div>
               </div>
               <h2 className="text-2xl font-bold">Ready to Play?</h2>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span className="font-mono">#{dailyNumber}</span>
+                <span>•</span>
+                <span>
+                  {new Date(initialData.date).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </span>
+              </div>
               <p className="text-muted-foreground text-sm">
                 Tap to enable sound and start your daily puzzle
               </p>
