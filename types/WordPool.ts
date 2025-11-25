@@ -9,7 +9,7 @@ export interface DailyWordPool {
   };
   metadata: {
     generatedAt: string;
-    aiModel: string;
+    source: string; // 数据来源：wordlist、advanced-wordlist、DFS等
     difficulty: "beginner" | "intermediate" | "expert";
   };
 }
@@ -23,7 +23,7 @@ export const DailyWordPoolSchema = z.object({
   }),
   metadata: z.object({
     generatedAt: z.string(),
-    aiModel: z.string(),
+    source: z.string(),
     difficulty: z.enum(["beginner", "intermediate", "expert"]),
   }),
 });

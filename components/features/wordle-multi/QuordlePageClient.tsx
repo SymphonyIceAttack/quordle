@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { type GameStats, loadStats } from "@/lib/stats";
 import { cn } from "@/lib/utils";
-import type { DailyWordPool } from "@/types/AIWordPool";
+import type { DailyWordPool } from "@/types/WordPool";
 
 // --- Components ---
 
