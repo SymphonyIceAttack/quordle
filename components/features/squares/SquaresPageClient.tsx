@@ -15,6 +15,7 @@ import Link from "next/link";
 import { useTheme } from "next-themes";
 import type React from "react";
 import { useEffect, useState } from "react";
+import { EntranceAnimation } from "@/components/animated-entrance";
 import { SquaresGame } from "@/components/features/squares/SquaresGame";
 import { Button } from "@/components/ui/button";
 import type { DailySquares } from "@/lib/squares-wordpool";
@@ -276,85 +277,87 @@ export function SquaresPageClient({ initialData }: SquaresPageClientProps) {
       {/* Game Area */}
       <div className="flex flex-1 flex-col items-center w-full overflow-y-auto">
         {!gameStarted ? (
-          <div className="flex-1 flex flex-col items-center justify-center w-full gap-8 p-8">
-            {/* Header */}
-            <div className="text-center space-y-3">
-              <div className="bg-green-500 p-4 rounded-full inline-block">
-                <div className="grid grid-cols-2 gap-0.5 w-12 h-12">
-                  <div className="bg-white/90 rounded-[2px]" />
-                  <div className="bg-white/90 rounded-[2px]" />
-                  <div className="bg-white/90 rounded-[2px]" />
-                  <div className="bg-white/90 rounded-[2px]" />
-                </div>
-              </div>
-              <h2 className="text-2xl font-bold">Ready to Play?</h2>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span className="font-mono">#{dailyNumber}</span>
-                <span>•</span>
-                <span>
-                  {new Date(initialData.date).toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </span>
-              </div>
-              <p className="text-muted-foreground text-sm">
-                Tap to enable sound and start your daily puzzle
-              </p>
-            </div>
-
-            {/* Start Button */}
-            <Button
-              size="lg"
-              onClick={startGame}
-              className="bg-green-500 hover:bg-green-600 text-white font-semibold px-8 py-3 text-lg shadow-lg hover:shadow-xl transition-all"
-            >
-              Start Game
-            </Button>
-
-            {/* Blurred Game Preview */}
-            <div className="relative mx-auto max-w-md w-full">
-              <div className="bg-card/50 rounded-2xl p-6 border border-border/50 backdrop-blur-sm">
-                {/* Grid Preview */}
-                <div className="grid grid-cols-4 gap-2 mb-6 blur-sm select-none">
-                  {initialData.grid.map((letter, index) => (
-                    <div
-                      key={index}
-                      className="aspect-square bg-primary/10 rounded-lg flex items-center justify-center text-2xl font-bold"
-                    >
-                      {letter}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Word List Preview */}
-                <div className="space-y-2 blur-sm select-none">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">
-                    Find these words ({initialData.words.length})
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {initialData.words.slice(0, 8).map((word, index) => (
-                      <span
-                        key={index}
-                        className="px-3 py-1 bg-muted rounded-full text-sm font-medium"
-                      >
-                        {word}
-                      </span>
-                    ))}
-                    {initialData.words.length > 8 && (
-                      <span className="px-3 py-1 bg-muted/50 rounded-full text-sm font-medium">
-                        +{initialData.words.length - 8} more
-                      </span>
-                    )}
+          <EntranceAnimation type="squares">
+            <div className="flex-1 flex flex-col items-center justify-center w-full gap-8 p-8">
+              {/* Header */}
+              <div className="text-center space-y-3">
+                <div className="bg-green-500 p-4 rounded-full inline-block">
+                  <div className="grid grid-cols-2 gap-0.5 w-12 h-12">
+                    <div className="bg-white/90 rounded-[2px]" />
+                    <div className="bg-white/90 rounded-[2px]" />
+                    <div className="bg-white/90 rounded-[2px]" />
+                    <div className="bg-white/90 rounded-[2px]" />
                   </div>
                 </div>
+                <h2 className="text-2xl font-bold">Ready to Play?</h2>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="font-mono">#{dailyNumber}</span>
+                  <span>•</span>
+                  <span>
+                    {new Date(initialData.date).toLocaleDateString("en-US", {
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
+                <p className="text-muted-foreground text-sm">
+                  Tap to enable sound and start your daily puzzle
+                </p>
+              </div>
 
-                {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent pointer-events-none rounded-2xl" />
+              {/* Start Button */}
+              <Button
+                size="lg"
+                onClick={startGame}
+                className="bg-green-500 hover:bg-green-600 text-white font-semibold px-8 py-3 text-lg shadow-lg hover:shadow-xl transition-all"
+              >
+                Start Game
+              </Button>
+
+              {/* Blurred Game Preview */}
+              <div className="relative mx-auto max-w-md w-full">
+                <div className="bg-card/50 rounded-2xl p-6 border border-border/50 backdrop-blur-sm">
+                  {/* Grid Preview */}
+                  <div className="grid grid-cols-4 gap-2 mb-6 blur-sm select-none">
+                    {initialData.grid.map((letter, index) => (
+                      <div
+                        key={index}
+                        className="aspect-square bg-primary/10 rounded-lg flex items-center justify-center text-2xl font-bold"
+                      >
+                        {letter}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Word List Preview */}
+                  <div className="space-y-2 blur-sm select-none">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                      Find these words ({initialData.words.length})
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {initialData.words.slice(0, 8).map((word, index) => (
+                        <span
+                          key={index}
+                          className="px-3 py-1 bg-muted rounded-full text-sm font-medium"
+                        >
+                          {word}
+                        </span>
+                      ))}
+                      {initialData.words.length > 8 && (
+                        <span className="px-3 py-1 bg-muted/50 rounded-full text-sm font-medium">
+                          +{initialData.words.length - 8} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent pointer-events-none rounded-2xl" />
+                </div>
               </div>
             </div>
-          </div>
+          </EntranceAnimation>
         ) : (
           <SquaresGame initialData={initialData} />
         )}

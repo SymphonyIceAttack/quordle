@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SquaresPageClient } from "@/components/features/squares/SquaresPageClient";
+import { GameStructuredData } from "@/components/structured-data";
 import { getDailySquares } from "@/lib/squares-wordpool";
 
 export const metadata: Metadata = {
@@ -41,5 +42,10 @@ export const metadata: Metadata = {
 export default async function SquaresPage() {
   const dailyData = await getDailySquares();
 
-  return <SquaresPageClient initialData={dailyData} />;
+  return (
+    <>
+      <GameStructuredData />
+      <SquaresPageClient initialData={dailyData} />
+    </>
+  );
 }

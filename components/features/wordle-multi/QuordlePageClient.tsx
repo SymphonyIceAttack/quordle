@@ -18,6 +18,7 @@ import Link from "next/link"; // Added Link import
 import { useTheme } from "next-themes";
 import type React from "react";
 import { useEffect, useState } from "react";
+import { EntranceAnimation } from "@/components/animated-entrance";
 import { GamePlaceholder } from "@/components/features/placeholder/GamePlaceholder";
 import { WordleMultiGame } from "@/components/features/wordle-multi/WordleMultiGame";
 import { Button } from "@/components/ui/button";
@@ -472,21 +473,27 @@ export function QuordlePageClient({ initialData }: QuordlePageClientProps) {
       {/* Game Area */}
       <div className="flex flex-1 flex-col items-center w-full overflow-hidden">
         {activeGame === "quordle" ? (
-          <WordleMultiGame gameMode="daily" initialData={initialData} />
+          <EntranceAnimation type="quordle">
+            <WordleMultiGame gameMode="daily" initialData={initialData} />
+          </EntranceAnimation>
         ) : activeGame === "combinations" ? (
-          <GamePlaceholder
-            title="Combinations"
-            icon={Grid3X3}
-            description="Combine letters to find all the hidden words."
-            onBack={() => setActiveGame("quordle")}
-          />
+          <EntranceAnimation type="quordle">
+            <GamePlaceholder
+              title="Combinations"
+              icon={Grid3X3}
+              description="Combine letters to find all the hidden words."
+              onBack={() => setActiveGame("quordle")}
+            />
+          </EntranceAnimation>
         ) : (
-          <GamePlaceholder
-            title="Strands"
-            icon={Hash}
-            description="Find the theme words hidden in the letter grid."
-            onBack={() => setActiveGame("quordle")}
-          />
+          <EntranceAnimation type="quordle">
+            <GamePlaceholder
+              title="Strands"
+              icon={Hash}
+              description="Find the theme words hidden in the letter grid."
+              onBack={() => setActiveGame("quordle")}
+            />
+          </EntranceAnimation>
         )}
       </div>
     </main>

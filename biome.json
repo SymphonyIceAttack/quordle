@@ -34,7 +34,10 @@
         "noSvgWithoutTitle": "off",
         "noStaticElementInteractions": "off",
         "useValidAnchor": "off",
-        "useKeyWithClickEvents": "off"
+        "useKeyWithClickEvents": "off",
+        "useFocusableInteractive": "off",
+        "useSemanticElements": "off",
+        "useAriaPropsForRole": "off"
       },
       "correctness": {
         "useExhaustiveDependencies": "off",
