@@ -14,8 +14,8 @@ export async function getDailySquares(): Promise<DailySquares> {
 
   if (isDevelopment) {
     try {
-      // 跳过复杂的DFS算法，直接使用高级词库生成简单网格
-      const result = await generateDailySquaresAdvanced(today);
+      // 传递原始today日期，确保返回正确的日期
+      const result = await generateDailySquaresAdvanced(today, undefined);
 
       if (
         !result ||
@@ -28,11 +28,15 @@ export async function getDailySquares(): Promise<DailySquares> {
         );
       }
 
+      // 确保恰好30个唯一单词（20个核心 + 10个奖励）
+      const uniqueWords = Array.from(new Set(result.words));
+      const finalWords = uniqueWords.slice(0, 30);
+
       return {
         grid: result.grid,
-        words: result.words,
-        coreWords: result.words.slice(0, 30),
-        bonusWords: result.words.slice(30),
+        words: finalWords,
+        coreWords: finalWords.slice(0, 20),
+        bonusWords: finalWords.slice(20, 30),
         date: result.date,
         metadata: {
           ...result.metadata,
@@ -95,11 +99,15 @@ export async function getDailySquares(): Promise<DailySquares> {
         );
       }
 
+      // 确保恰好30个唯一单词（20个核心 + 10个奖励）
+      const uniqueWords = Array.from(new Set(result.words));
+      const finalWords = uniqueWords.slice(0, 30);
+
       return {
         grid: result.grid,
-        words: result.words,
-        coreWords: result.coreWords,
-        bonusWords: result.bonusWords,
+        words: finalWords,
+        coreWords: finalWords.slice(0, 20),
+        bonusWords: finalWords.slice(20, 30),
         date: result.date,
         metadata: {
           generatedAt: result.metadata.generatedAt,
@@ -137,8 +145,8 @@ export async function getDailySquares(): Promise<DailySquares> {
       return {
         grid: result.grid,
         words: result.words,
-        coreWords: result.words.slice(0, 30),
-        bonusWords: result.words.slice(30),
+        coreWords: result.words.slice(0, 20),
+        bonusWords: result.words.slice(20, 30),
         date: result.date,
         metadata: {
           ...result.metadata,
@@ -161,11 +169,15 @@ export async function getDailySquares(): Promise<DailySquares> {
           );
         }
 
+        // 确保恰好30个唯一单词
+        const uniqueWords = Array.from(new Set(result.words));
+        const finalWords = uniqueWords.slice(0, 30);
+
         return {
           grid: result.grid,
-          words: result.words,
-          coreWords: result.words.slice(0, 30),
-          bonusWords: result.words.slice(30),
+          words: finalWords,
+          coreWords: finalWords.slice(0, 20),
+          bonusWords: finalWords.slice(20, 30),
           date: result.date,
           metadata: {
             ...result.metadata,

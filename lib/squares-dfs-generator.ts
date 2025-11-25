@@ -329,8 +329,8 @@ export function generateGridWithWords(words: string[]): {
   foundWords: string[];
   wordPaths: Record<string, number[]>;
 } {
-  // 限制单词数量以提高成功率
-  const maxWords = Math.min(words.length, 10);
+  // 降低单词数量限制到15个以提高成功率，确保至少有20个单词可用
+  const maxWords = Math.min(words.length, 15);
   const selectedWords = words.slice(0, maxWords);
 
   // 使用智能放置算法

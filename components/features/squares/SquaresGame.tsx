@@ -44,18 +44,17 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
     [initialData.bonusWords, initialData.words],
   );
 
-  // 当前可见的单词列表（核心单词 + 可选的奖励单词）
+  // 当前可见的单词列表（默认隐藏所有单词）
   const visibleWords = React.useMemo(() => {
-    if (showBonusWords) {
-      return [...coreWords, ...bonusWords];
-    }
-    return coreWords;
+    // 所有模式：默认显示0个单词
+    return showBonusWords ? [...coreWords, ...bonusWords] : [];
   }, [coreWords, bonusWords, showBonusWords]);
 
-  const allWords = React.useMemo(
-    () => Array.from(new Set(initialData.words)),
-    [initialData.words],
-  );
+  const allWords = React.useMemo(() => {
+    const unique = Array.from(new Set(initialData.words));
+    // Ensure exactly 30 unique words
+    return unique.slice(0, 30);
+  }, [initialData.words]);
 
   const validWords = React.useMemo(() => new Set(allWords), [allWords]);
 
@@ -437,8 +436,8 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
                 />
               </div>
             </div>
-            {/* 奖励单词进度条（条件显示） */}
-            {showBonusWords && bonusWordsTotal > 0 && (
+            {/* 奖励单词进度条（始终显示） */}
+            {bonusWordsTotal > 0 && (
               <div className="space-y-2 mt-3">
                 <div className="flex justify-between items-center text-sm">
                   <span className="font-medium flex items-center gap-1">
@@ -598,6 +597,23 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
                   <Bug className="h-5 w-5" />
                 </Button>
               )}
+              {isDevelopment && (
+                <Button
+                  variant={showBonusWords ? "default" : "secondary"}
+                  size="icon"
+                  className={cn(
+                    "rounded-xl h-12 w-12",
+                    showBonusWords &&
+                      "bg-blue-500 hover:bg-blue-600 text-white",
+                  )}
+                  onClick={() => setShowBonusWords(!showBonusWords)}
+                  title={
+                    showBonusWords ? "Hide bonus words" : "Show bonus words"
+                  }
+                >
+                  <Lightbulb className="h-5 w-5" />
+                </Button>
+              )}
               <Button
                 variant="secondary"
                 size="icon"
@@ -612,6 +628,15 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
         </div>
 
         <div className="flex flex-col gap-4">
+          {/* 解锁提示 */}
+          {!isDevelopment && !showBonusWords && bonusWordsTotal > 0 && (
+            <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+              <p className="text-sm font-medium text-blue-700 dark:text-blue-300 text-center">
+                💡 Find all {coreWordsTotal} core words to unlock{" "}
+                {bonusWordsTotal} bonus words!
+              </p>
+            </div>
+          )}
           <div className="flex justify-between items-center gap-2">
             <div className="flex gap-2">
               <Button
@@ -638,28 +663,26 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
               </Button>
             </div>
             {/* 奖励单词解锁按钮 */}
-            {!showBonusWords && bonusWordsTotal > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const coreWordsFound = foundWords.filter((w) =>
-                    coreWords.includes(w),
-                  ).length;
-                  if (coreWordsFound === coreWordsTotal) {
-                    setShowBonusWords(true);
-                    toast.success("🎉 Bonus words unlocked!");
-                  } else {
-                    toast.info(
-                      `Find ${coreWordsTotal - coreWordsFound} more core words to unlock bonus words!`,
-                    );
-                  }
-                }}
-                className="font-bold border-blue-300 text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950"
-              >
-                ⭐ Unlock Bonus Words
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const coreWordsFound = foundWords.filter((w) =>
+                  coreWords.includes(w),
+                ).length;
+                if (coreWordsFound === coreWordsTotal) {
+                  setShowBonusWords(true);
+                  toast.success("🎉 Bonus words unlocked!");
+                } else {
+                  toast.info(
+                    `Find ${coreWordsTotal - coreWordsFound} more core words to unlock bonus words!`,
+                  );
+                }
+              }}
+              className="font-bold border-blue-300 text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950"
+            >
+              ⭐ Unlock Bonus Words
+            </Button>
           </div>
 
           <Card className="flex flex-col p-6 shadow-sm border border-border/50 bg-white dark:bg-card h-[500px]">
@@ -676,7 +699,17 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
               </div>
 
               <div className="flex-1 overflow-y-auto pr-2 -mr-2">
-                {sortMode === "length" ? (
+                {visibleWords.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
+                    <Lightbulb className="h-8 w-8 mb-3" />
+                    <p className="text-sm font-medium mb-1">
+                      Click lightbulb to show word list
+                    </p>
+                    <p className="text-xs text-center">
+                      Then connect letters in the grid to find words
+                    </p>
+                  </div>
+                ) : sortMode === "length" ? (
                   <div className="space-y-6">
                     {wordCategories.map((cat) => {
                       // 获取该长度的所有单词（已找到和未找到的）
@@ -720,6 +753,16 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
                         </div>
                       );
                     })}
+                  </div>
+                ) : visibleWords.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
+                    <Lightbulb className="h-8 w-8 mb-3" />
+                    <p className="text-sm font-medium mb-1">
+                      Click lightbulb to show word list
+                    </p>
+                    <p className="text-xs text-center">
+                      Then connect letters in the grid to find words
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-2">

@@ -1985,15 +1985,35 @@ export async function generateDailyWordsFromList(
 export async function generateDailySquaresFromList(date?: string) {
   const today = date || new Date().toISOString().split("T")[0];
 
-  // 使用确定性的方式选择单词来构建网格
-  const selectedWords = selectBySeed(ALL_WORDS, 10, today);
+  // 筛选3-5字母单词（优先3-4字母）
+  const threeFourLetterWords = ALL_WORDS.filter(
+    (w) => w.length >= 3 && w.length <= 4,
+  );
+  const fiveLetterWords = ALL_WORDS.filter((w) => w.length === 5);
 
-  // 构建4x4网格（简化版，实际可更复杂）
+  // 确保至少选择20个单词：40%来自3-4字母，60%来自5字母
+  const targetWords = 35;
+  const shortWordCount = Math.floor(targetWords * 0.4); // 14个
+  const fiveLetterCount = targetWords - shortWordCount; // 21个
+
+  const selectedShortWords = selectBySeed(
+    threeFourLetterWords,
+    shortWordCount,
+    today,
+  );
+  const selectedFiveWords = selectBySeed(
+    fiveLetterWords,
+    fiveLetterCount,
+    today,
+  );
+  const selectedWords = [...selectedShortWords, ...selectedFiveWords];
+
+  // 构建5x5网格（25格）
   const grid: string[] = [];
   const allLetters = selectedWords.join("").toUpperCase().split("");
 
-  // 填充16个格子，如果字母不够则填充随机字母
-  for (let i = 0; i < 16; i++) {
+  // 填充25个格子，如果字母不够则填充随机字母
+  for (let i = 0; i < 25; i++) {
     if (i < allLetters.length) {
       grid.push(allLetters[i]);
     } else {
@@ -2008,16 +2028,16 @@ export async function generateDailySquaresFromList(date?: string) {
     const wordUpper = word.toUpperCase();
     return (
       wordUpper.length >= 3 &&
-      wordUpper.length <= 8 &&
+      wordUpper.length <= 6 &&
       wordUpper.split("").every((letter) => grid.includes(letter))
     );
   });
 
   return {
     grid,
-    words: findableWords.slice(0, 50), // 限制最多50个单词
-    coreWords: findableWords.slice(0, 30), // 前30个作为核心单词
-    bonusWords: findableWords.slice(30, 50), // 剩余的作为奖励单词
+    words: findableWords.slice(0, 30), // 限制最多30个单词
+    coreWords: findableWords.slice(0, 20), // 前20个作为核心单词
+    bonusWords: findableWords.slice(20, 30), // 剩余的作为奖励单词
     date: today,
     metadata: {
       generatedAt: new Date().toISOString(),

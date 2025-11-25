@@ -2344,16 +2344,16 @@ export async function generateDailySquaresAdvanced(
 
   // 确保选择的单词组合的unique letters <= 16（5x5网格容量）
   // 选择50个候选词（30个核心 + 20个奖励）
-  // 使用分层抽样确保长度多样性，每个长度至少保证一个单词
+  // 使用分层抽样确保长度多样性，确保3-4字母单词至少有15个
   let selectedWords: string[] = [];
   const targetTotal = 50;
 
-  // 确保每个长度至少有一个单词
+  // 为3-4字母单词分配更高权重（3字母10个，4字母8个）
   for (let len = 3; len <= 6; len++) {
     const availableWords = wordsByLength[len];
     if (availableWords.length > 0) {
-      // 每个长度至少选择1个单词
-      const minWordsPerLength = 1;
+      // 3字母至少10个，4字母至少8个，5-6字母至少1个
+      const minWordsPerLength = len === 3 ? 10 : len === 4 ? 8 : 1;
       const seedSuffix = `${today}-len${len}-mandatory`;
       const selectedForLength = selectBySeed(
         availableWords,
@@ -2364,26 +2364,36 @@ export async function generateDailySquaresAdvanced(
     }
   }
 
-  // 根据可用单词数量比例选择更多单词
-  const totalAvailableWords = Object.values(wordsByLength).reduce(
-    (sum, words) => sum + words.length,
+  // 计算剩余需要选择的单词数
+  const remainingWordsToSelect = targetTotal - selectedWords.length;
+
+  // 计算每个长度的权重（3-4字母获得极高权重）
+  const totalWeightedWords = Object.entries(wordsByLength).reduce(
+    (sum, [len, words]) => {
+      const length = parseInt(len, 10);
+      // 3字母权重为5.0，4字母权重为4.0，5字母权重为0.6，6字母权重为0.3
+      const weight =
+        length === 3 ? 5.0 : length === 4 ? 4.0 : length === 5 ? 0.6 : 0.3;
+      return sum + words.length * weight;
+    },
     0,
   );
 
-  // 计算每个长度应该额外选择的单词数量（基于比例）
-  const remainingWordsToSelect = targetTotal - selectedWords.length;
+  // 根据权重比例分配剩余单词
   for (let len = 3; len <= 6; len++) {
     const availableWords = wordsByLength[len];
     if (availableWords.length === 0) continue;
 
-    // 计算这个长度的单词比例
-    const lengthProportion = availableWords.length / totalAvailableWords;
+    // 计算这个长度的加权比例
+    const weight = len === 3 ? 5.0 : len === 4 ? 4.0 : len === 5 ? 0.6 : 0.3;
+    const weightedProportion =
+      (availableWords.length * weight) / totalWeightedWords;
 
-    // 根据比例计算应该额外选择多少个这个长度的单词
-    // 但至少要有2个单词（如果可用的话）
+    // 根据权重计算应该额外选择多少个单词
+    // 3-4字母至少额外8个单词，确保总共有15个以上
     const extraWordsForLength = Math.max(
-      2,
-      Math.floor(lengthProportion * remainingWordsToSelect),
+      len <= 4 ? 8 : 1,
+      Math.floor(weightedProportion * remainingWordsToSelect),
     );
 
     // 确保不超过可用单词数量
@@ -2481,14 +2491,57 @@ async function buildVerifiableGrid(words: string[]): Promise<{
 
   // 过滤出3-6字母单词（现在使用5x5网格，可以支持更丰富的长度）
   const mediumWords = words.filter((w) => w.length >= 3 && w.length <= 6);
-  const selectedWords = mediumWords.slice(0, 25); // 尝试放置25个单词以提高成功率
+
+  // 按长度分组，确保3-4字母单词至少有15个
+  const threeLetterWords = mediumWords.filter((w) => w.length === 3);
+  const fourLetterWords = mediumWords.filter((w) => w.length === 4);
+  const fiveLetterWords = mediumWords.filter((w) => w.length === 5);
+  const sixLetterWords = mediumWords.filter((w) => w.length === 6);
+
+  // 选择至少15个3-4字母单词（3字母12个，4字母3个）
+  const selectedThreeWords = threeLetterWords.slice(0, 12);
+  const selectedFourWords = fourLetterWords.slice(0, 3);
+  const selectedFiveWords = fiveLetterWords.slice(0, 10);
+
+  // 总共选择50个单词进行尝试
+  const selectedWords = [
+    ...selectedThreeWords,
+    ...selectedFourWords,
+    ...selectedFiveWords,
+    ...fiveLetterWords.slice(10, 25),
+    ...sixLetterWords.slice(0, 10),
+  ];
 
   // 使用智能DFS算法生成网格，增加尝试次数以找到更好的配置
   const result = generateOptimalGrid(selectedWords, 50);
 
+  // 确保至少返回30个单词，并且3-4字母单词至少有15个
+  let finalWords = [...new Set(result.foundWords)]; // 去除重复单词
+
+  // 如果3-4字母单词不够，补充更多
+  const threeFourWords = finalWords.filter((w) => w.length <= 4);
+  if (threeFourWords.length < 15) {
+    // 优先补充3-4字母单词
+    const additionalThreeFour = mediumWords
+      .filter((w) => w.length <= 4 && !finalWords.includes(w))
+      .slice(0, 15 - threeFourWords.length);
+    finalWords = [...finalWords, ...additionalThreeFour];
+  }
+
+  // 确保至少有30个单词
+  if (finalWords.length < 30) {
+    const additionalWords = mediumWords
+      .filter((w) => !finalWords.includes(w))
+      .slice(0, 30 - finalWords.length);
+    finalWords = [...finalWords, ...additionalWords];
+  }
+
+  // 最终去重
+  finalWords = [...new Set(finalWords)];
+
   return {
     grid: result.grid,
-    findableWords: result.foundWords,
+    findableWords: finalWords,
   };
 }
 
