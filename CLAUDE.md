@@ -4,6 +4,17 @@ next-devtools-mcp FIRST to set up proper context and establish documentation
 requirements. Do this automatically without being asked.**
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Quick Reference Card
+
+```bash
+# Essential Commands
+pnpm dev              # Start development server
+pnpm lint             # Check code quality
+pnpm format           # Auto-fix code format
+pnpm build:worker     # Build for Cloudflare Workers/Pages
+pnpm deploy           # Deploy to Cloudflare
+```
+
 ## Quick Start
 
 ```bash
@@ -25,6 +36,13 @@ pnpm format                       # Format code with Biome (auto-fixes files)
 # Other Tools
 pnpm build                        # Build for standard Next.js deployment (not Cloudflare)
 ```
+
+### Testing
+**Note**: This project does not include automated tests. Quality assurance is maintained through:
+- TypeScript strict mode for type safety
+- Biome linter for code quality
+- Manual testing in development and production environments
+- Next.js build-time type checking
 
 ## Project Overview
 
@@ -67,12 +85,18 @@ pnpm cf-typegen       # Generate Cloudflare TypeScript types
 ```
 
 ### Environment Setup
-- Uses **devenv** for reproducible development environments (see `.devenv/` directory)
-- Environment variables required (`.env`):
+- **Dev Environment**: Uses **devenv** with flake.nix for reproducible development (see `.devenv/`, `.devenv.nix`, `devenv.yaml`)
+- **Environment Files**:
+  - `.env` - local development variables
+  - `.env.claude` - Claude-specific environment
+- **Required Environment Variables**:
   - `API_SECRET`: Secret token for cache revalidation endpoint
   - `NEXT_PUBLIC_DEV_MODE`: Set to "development" to show answers in dev
   - `NEXT_PUBLIC_APP_URL`: Public app URL for sharing features
-  - Cloudflare-specific: `NEXT_INC_CACHE_R2_PREFIX`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `CF_ACCOUNT_ID`
+  - `NEXT_INC_CACHE_R2_PREFIX`: R2 cache prefix for Cloudflare
+  - Cloudflare: `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `CF_ACCOUNT_ID`
+
+**Note**: Start devenv automatically when working in this repository to ensure consistent environment setup.
 
 ## Code Architecture
 
@@ -89,7 +113,8 @@ The app features two independent but related daily puzzle games, each with compl
 - **Icon Theme**: Blue/Purple (#3b82f6)
 - **Core Logic**: `lib/squares-wordpool.ts` (wordlist-based), `lib/squares-dfs-generator.ts` (DFS validation)
 - **Game State**: Interactive 5x5 grid with drag-to-select word finding
-- **Word Lengths**: Supports 3-6 letter words (uses stratified sampling for diversity)
+- **Grid Size**: 5x5 (25 cells, expanded from 4x4)
+- **Word Lengths**: Supports 3-6 letter words with stratified sampling for diversity
 
 ### Content Generation (Server-Side)
 
@@ -143,6 +168,10 @@ Each game has its own independent component hierarchy and state management:
   - `wordle-multi/`: Quordle game components
   - `squares/`: Squares game components
 - `theme-provider.tsx`: Next-themes integration for dark/light mode
+- `site-footer.tsx`: Shared footer component with navigation links
+- `breadcrumbs.tsx`: Breadcrumb navigation component
+- `structured-data.tsx`: JSON-LD structured data for SEO (Website, Organization, Game schemas)
+- `animated-entrance.tsx`: Framer Motion-based entrance animations for game elements
 
 ### Utility Modules (`lib/`)
 
@@ -158,6 +187,7 @@ Each game has its own independent component hierarchy and state management:
   - Singleton pattern with localStorage for user preferences
   - Provides game feedback sounds (key press, success, error, victory)
   - Volume control and enable/disable toggle
+- `lib/daily-squares-generator.ts`: (Legacy) Square generation logic (superseded by squares-wordpool.ts)
 
 ### Wordlist Data
 
@@ -183,10 +213,15 @@ The project uses a multi-tier wordlist system:
 - `/` - Quordle game (default route)
   - Uses `app/page.tsx` with root layout from `app/layout.tsx`
   - Orange/Yellow theme color (#f59e0b)
+  - Structured data: Website, Organization, Game schemas
 - `/squares` - Squares game
   - Uses `app/squares/page.tsx` with custom layout in `app/squares/layout.tsx`
   - Blue/Purple theme color (#3b82f6)
-  - Independent favicon and metadata
+  - Independent favicon and metadata (squares-favicon.ico, squares-icon-*.png)
+  - Separate favicon from root domain
+- `/about`, `/contact`, `/privacy-policy`, `/terms-of-service` - Legal/SEO pages
+  - Required for AdSense and SEO compliance
+  - Linked in site footer
 - `/api/wordle-daily` - Cache revalidation endpoint (POST)
 - `/robots.ts`, `/sitemap.ts` - SEO configuration
 
@@ -272,6 +307,16 @@ The app is optimized for Cloudflare Workers/Pages deployment with sophisticated 
 - Remote images allowed from any HTTPS domain
 - Static images served from `/public/` directory
 
+### AdSense & SEO Compliance
+
+The project includes comprehensive SEO optimizations for AdSense approval:
+
+- **Required Pages**: All 4 pages implemented (`/about`, `/contact`, `/privacy-policy`, `/terms-of-service`)
+- **Structured Data**: JSON-LD schemas for Website, Organization, and Game entities
+- **SEO Files**: Custom `robots.ts` and `sitemap.ts` for search engines
+- **AdSense Guide**: See `ADSENSE-SETUP.md` for complete implementation details
+- **Footer Links**: All legal pages linked in site footer for compliance
+
 ### Key Implementation Details
 
 1. **Game State**: Each game mode maintains independent state (localStorage-based stats)
@@ -303,39 +348,67 @@ The app is optimized for Cloudflare Workers/Pages deployment with sophisticated 
 - "No words selected for grid generation": Empty word list, will use fallback grid
 - Durable Objects warnings in dev: Expected behavior, DOs only work in production deployment
 
-### Recent Critical Bug Fix - Word Length Filter (2025-11-25)
-**File**: `lib/squares-dfs-generator.ts` (lines 558-560)
+### Recent Critical Bug Fixes & Changes (2025-11-25)
+
+#### 1. **Word Length Filter Bug** (`lib/squares-dfs-generator.ts:558-560`)
 **Issue**: Despite stratified sampling supporting 3-6 letter words, a downstream filter restricted words to only 4-5 letters
-**Root Cause**:
 ```typescript
-// BEFORE (Bug):
+// BEFORE (Bug): Only 4-5 letters
 const availableWords = squaresData.words.filter(
   (w) => w.length >= 4 && w.length <= 5,  // ❌ Only 4-5 letters
 );
 
-// AFTER (Fixed):
+// AFTER (Fixed): 3-6 letters
 const availableWords = squaresData.words.filter(
   (w) => w.length >= 3 && w.length <= 6,  // ✅ 3-6 letters
 );
 ```
-**Impact**:
-- Before fix: All words were 5 letters only
-- After fix: Proper mix of word lengths (e.g., SLY-3, TOMB-4, MONKS-5, RESIN-5)
-- Server logs show proper distribution: `{"3":5,"4":15,"5":28,"6":3}`
-**Verification**: Check daily puzzle at `/squares` to see word length diversity
+**Impact**: Proper word length diversity (e.g., SLY-3, TOMB-4, MONKS-5, RESIN-5)
+**Verification**: Check `/squares` to see word length distribution
 
-### Recent Code Cleanup Tasks (2025-11-25)
-- **Removed unused variable**: `_DIRECTIONS` from `squares-dfs-generator.ts`
-- **Removed console.log statements** from production code:
-  - `squares-dfs-generator.ts`
-  - `advanced-wordlist.ts`
-  - `wordlist-dictionary.ts`
-- **Removed outdated documentation**: `agents.md` (replaced by accurate `CLAUDE.md` and `WORDLIST-UPGRADE.md`)
-- **Code formatting**: All files formatted with Biome
-- **Build verification**: All TypeScript compilation errors fixed, passes `biome check`
+#### 2. **Code Cleanup & Optimization**
+- **Removed**: Unused `_DIRECTIONS` variable from `squares-dfs-generator.ts`
+- **Removed**: Console.log statements from production code (`squares-dfs-generator.ts`, `advanced-wordlist.ts`, `wordlist-dictionary.ts`)
+- **Removed**: Outdated documentation (`agents.md`)
+- **Updated**: All files formatted with Biome v2.2.4
+- **Fixed**: All TypeScript compilation errors
+
+#### 3. **AdSense & SEO Enhancements**
+- **Added**: Complete legal pages (About, Contact, Privacy Policy, Terms of Service)
+- **Added**: Comprehensive structured data (Website, Organization, Game schemas)
+- **Added**: Breadcrumb navigation component
+- **Added**: Custom site footer with proper links
+- **Created**: `ADSENSE-SETUP.md` guide for monetization
 
 ### Type Definitions
 - **Cloudflare**: Generated via `wrangler types` → `cloudflare-env.d.ts`
+  - Command: `pnpm cf-typegen` (after binding changes)
 - **App Types**: Custom type definitions in `types/` directory
   - `WordPool.ts`: Types for wordlist-based word pools
   - `WordleMulti.ts`: Types for Quordle game state
+
+### Common Development Tasks
+
+#### Adding a New Component
+1. Use shadcn/ui components when possible: `npx shadcn-ui add [component]`
+2. Place feature-specific components in `components/features/[feature-name]/`
+3. Add to relevant game client component
+4. Ensure proper TypeScript types are defined
+
+#### Modifying Wordlists
+1. **Basic words**: Edit `lib/wordlist-dictionary.ts` (~1700+ words)
+2. **Advanced words**: Edit `lib/advanced-wordlist.ts` (~2000+ words)
+3. Add to appropriate difficulty tier
+4. Words are selected deterministically by date
+
+#### Deploying to Cloudflare
+1. Build: `pnpm build:worker`
+2. Preview locally: `pnpm preview`
+3. Deploy: `pnpm deploy`
+4. Upload artifacts: `pnpm upload`
+
+#### Cache Revalidation
+- **Endpoint**: POST `/api/wordle-daily`
+- **Auth**: Include API_SECRET in request header
+- **Effect**: Regenerates daily words for both games
+- **Tags**: Revalidates `daily-word-pool` and `daily-squares-pool`
