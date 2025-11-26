@@ -26,6 +26,8 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
   const gridRef = React.useRef<HTMLDivElement>(null);
 
   const boardLetters = initialData.grid;
+  // 计算网格大小（支持4x4和5x5）
+  const gridSize = Math.sqrt(boardLetters.length);
 
   // 分离核心单词和奖励单词
   const coreWords = React.useMemo(
@@ -114,10 +116,10 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
     .join("");
 
   const isAdjacent = (index1: number, index2: number) => {
-    const row1 = Math.floor(index1 / 5);
-    const col1 = index1 % 5;
-    const row2 = Math.floor(index2 / 5);
-    const col2 = index2 % 5;
+    const row1 = Math.floor(index1 / gridSize);
+    const col1 = index1 % gridSize;
+    const row2 = Math.floor(index2 / gridSize);
+    const col2 = index2 % gridSize;
     return Math.abs(row1 - row2) <= 1 && Math.abs(col1 - col2) <= 1;
   };
 
@@ -240,15 +242,21 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
     const relativeX = x - rect.left - padding;
     const relativeY = y - rect.top - padding;
 
-    // Each cell occupies 20% of inner dimension with gaps between
-    const cellWidth = innerWidth / 5;
-    const cellHeight = innerHeight / 5;
+    // Each cell occupies equal percentage with gaps between
+    const cellWidth = innerWidth / gridSize;
+    const cellHeight = innerHeight / gridSize;
 
     // Calculate column and row with better precision
-    const col = Math.min(4, Math.max(0, Math.floor(relativeX / cellWidth)));
-    const row = Math.min(4, Math.max(0, Math.floor(relativeY / cellHeight)));
+    const col = Math.min(
+      gridSize - 1,
+      Math.max(0, Math.floor(relativeX / cellWidth)),
+    );
+    const row = Math.min(
+      gridSize - 1,
+      Math.max(0, Math.floor(relativeY / cellHeight)),
+    );
 
-    return row * 5 + col;
+    return row * gridSize + col;
   };
 
   React.useEffect(() => {
@@ -377,22 +385,26 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
 
   const getTileCenter = (index: number) => {
     if (!gridRef.current) {
-      const col = index % 5;
-      const row = Math.floor(index / 5);
+      const col = index % gridSize;
+      const row = Math.floor(index / gridSize);
+      // Calculate cell size based on grid size (100 / gridSize for viewBox)
+      const cellSize = 100 / gridSize;
       return {
-        x: col * 20 + 10,
-        y: row * 20 + 10,
+        x: col * cellSize + cellSize / 2,
+        y: row * cellSize + cellSize / 2,
       };
     }
 
     const rect = gridRef.current.getBoundingClientRect();
     const padding = 8; // account for grid padding and gaps
     const gap = 8; // grid gap size (gap-2 sm:gap-3 ~ 8-12px)
-    const cellWidth = (rect.width - padding * 2 - gap * 4) / 5;
-    const cellHeight = (rect.height - padding * 2 - gap * 4) / 5;
+    const cellWidth =
+      (rect.width - padding * 2 - gap * (gridSize - 1)) / gridSize;
+    const cellHeight =
+      (rect.height - padding * 2 - gap * (gridSize - 1)) / gridSize;
 
-    const col = index % 5;
-    const row = Math.floor(index / 5);
+    const col = index % gridSize;
+    const row = Math.floor(index / gridSize);
 
     const x = padding + col * (cellWidth + gap) + cellWidth / 2;
     const y = padding + row * (cellHeight + gap) + cellHeight / 2;
@@ -510,7 +522,10 @@ export function SquaresGame({ initialData }: SquaresGameProps) {
               )}
             </svg>
 
-            <div className="grid grid-cols-5 gap-2 sm:gap-3 w-full h-full p-1">
+            <div
+              className={`grid gap-2 sm:gap-3 w-full h-full p-1`}
+              style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}
+            >
               {boardLetters.map((letter, index) => {
                 const isSelected = selectedTiles.includes(index);
                 const isHint = hintTile === index;

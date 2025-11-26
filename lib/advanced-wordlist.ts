@@ -6118,22 +6118,22 @@ export async function generateDailySquaresAdvanced(
     ).length;
   }
 
-  // 检查unique letters数量，如果>16则过滤
+  // 检查unique letters数量，如果>22则过滤（5x5网格可以支持20+ unique letters）
   let uniqueLetters = [
     ...new Set(selectedWords.join("").toUpperCase().split("")),
   ];
-  if (uniqueLetters.length > 16) {
-    // 重新选择，直到unique letters <= 16
+  if (uniqueLetters.length > 22) {
+    // 重新选择，直到unique letters <= 22
     let attempts = 0;
     while (attempts < 50) {
-      const targetCount = Math.max(20, 50 - attempts * 2);
+      const targetCount = Math.max(25, 50 - attempts * 2);
       const tempWords = selectBySeed(shortWords, targetCount, today);
       const tempUnique = [
         ...new Set(tempWords.join("").toUpperCase().split("")),
       ];
 
-      // 如果unique letters <= 16，或者已经尝试了很多次，就接受这个结果
-      if (tempUnique.length <= 16 || attempts >= 30) {
+      // 如果unique letters <= 22，或者已经尝试了很多次，就接受这个结果
+      if (tempUnique.length <= 22 || attempts >= 30) {
         selectedWords = tempWords;
         uniqueLetters = tempUnique;
         break;
@@ -6192,26 +6192,26 @@ async function buildVerifiableGrid(words: string[]): Promise<{
   ];
 
   // 使用智能DFS算法生成网格，增加尝试次数以找到更好的配置
-  const result = generateOptimalGrid(selectedWords, 50);
+  const result = generateOptimalGrid(selectedWords, 100);
 
-  // 确保至少返回30个单词，并且3-4字母单词至少有15个
+  // 确保至少返回20个单词，并且3-4字母单词至少有12个
   let finalWords = [...new Set(result.foundWords)]; // 去除重复单词
 
   // 如果3-4字母单词不够，补充更多
   const threeFourWords = finalWords.filter((w) => w.length <= 4);
-  if (threeFourWords.length < 15) {
+  if (threeFourWords.length < 12) {
     // 优先补充3-4字母单词
     const additionalThreeFour = mediumWords
       .filter((w) => w.length <= 4 && !finalWords.includes(w))
-      .slice(0, 15 - threeFourWords.length);
+      .slice(0, 12 - threeFourWords.length);
     finalWords = [...finalWords, ...additionalThreeFour];
   }
 
-  // 确保至少有30个单词
-  if (finalWords.length < 30) {
+  // 确保至少有20个单词
+  if (finalWords.length < 20) {
     const additionalWords = mediumWords
       .filter((w) => !finalWords.includes(w))
-      .slice(0, 30 - finalWords.length);
+      .slice(0, 20 - finalWords.length);
     finalWords = [...finalWords, ...additionalWords];
   }
 

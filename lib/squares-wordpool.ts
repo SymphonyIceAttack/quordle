@@ -9,80 +9,6 @@ export type { DailySquares };
 export async function getDailySquares(): Promise<DailySquares> {
   const today = new Date().toISOString().split("T")[0];
 
-  // 在开发模式下禁用缓存，实时生成新的网格
-  const isDevelopment = process.env.NODE_ENV === "development";
-
-  if (isDevelopment) {
-    try {
-      // 传递原始today日期，确保返回正确的日期
-      const result = await generateDailySquaresAdvanced(today, undefined);
-
-      if (
-        !result ||
-        !result.grid ||
-        !result.words ||
-        result.words.length === 0
-      ) {
-        throw new Error(
-          "Invalid or empty result from generateDailySquaresAdvanced",
-        );
-      }
-
-      // 确保恰好30个唯一单词（20个核心 + 10个奖励）
-      const uniqueWords = Array.from(new Set(result.words));
-      const finalWords = uniqueWords.slice(0, 30);
-
-      return {
-        grid: result.grid,
-        words: finalWords,
-        coreWords: finalWords.slice(0, 20),
-        bonusWords: finalWords.slice(20, 30),
-        date: result.date,
-        metadata: {
-          ...result.metadata,
-          source: result.metadata.source || "advanced-wordlist-simple",
-        },
-      };
-    } catch (_advancedError) {
-      try {
-        // 回退到基础词库
-        const result = await generateDailySquaresFromList(today);
-
-        if (
-          !result ||
-          !result.grid ||
-          !result.words ||
-          result.words.length === 0
-        ) {
-          throw new Error(
-            "Invalid or empty result from generateDailySquaresFromList",
-          );
-        }
-
-        return {
-          grid: result.grid,
-          words: result.words,
-          coreWords: result.words.slice(0, 30),
-          bonusWords: result.words.slice(30),
-          date: result.date,
-          metadata: {
-            ...result.metadata,
-            source: result.metadata.source || "wordlist",
-          },
-        };
-      } catch (_basicError) {
-        return {
-          ...FALLBACK_DATA,
-          date: new Date().toISOString().split("T")[0],
-          metadata: {
-            generatedAt: new Date().toISOString(),
-            source: "fallback",
-          },
-        };
-      }
-    }
-  }
-
   const getCached = unstable_cache(
     async () => {
       // 使用终极DFS算法生成可验证的网格
@@ -125,7 +51,22 @@ export async function getDailySquares(): Promise<DailySquares> {
   );
 
   try {
-    return await getCached();
+    const result = await getCached();
+    // 如果找到的单词太少，使用fallback数据
+    if (!result.words || result.words.length < 20) {
+      console.warn(
+        `Only found ${result.words?.length || 0} words, using fallback data`,
+      );
+      return {
+        ...FALLBACK_DATA,
+        date: today,
+        metadata: {
+          generatedAt: new Date().toISOString(),
+          source: "fallback-dense-grid",
+        },
+      };
+    }
+    return result;
   } catch (_error) {
     try {
       // 回退到高级词库
@@ -140,6 +81,21 @@ export async function getDailySquares(): Promise<DailySquares> {
         throw new Error(
           "Invalid or empty result from generateDailySquaresAdvanced",
         );
+      }
+
+      // 如果找到的单词太少，使用fallback数据
+      if (result.words.length < 20) {
+        console.warn(
+          `Only found ${result.words.length} words from advanced list, using fallback`,
+        );
+        return {
+          ...FALLBACK_DATA,
+          date: today,
+          metadata: {
+            generatedAt: new Date().toISOString(),
+            source: "fallback-dense-grid",
+          },
+        };
       }
 
       return {
@@ -169,6 +125,21 @@ export async function getDailySquares(): Promise<DailySquares> {
           );
         }
 
+        // 如果找到的单词太少，使用fallback数据
+        if (result.words.length < 20) {
+          console.warn(
+            `Only found ${result.words.length} words from basic list, using fallback`,
+          );
+          return {
+            ...FALLBACK_DATA,
+            date: today,
+            metadata: {
+              generatedAt: new Date().toISOString(),
+              source: "fallback-dense-grid",
+            },
+          };
+        }
+
         // 确保恰好30个唯一单词
         const uniqueWords = Array.from(new Set(result.words));
         const finalWords = uniqueWords.slice(0, 30);
@@ -187,7 +158,7 @@ export async function getDailySquares(): Promise<DailySquares> {
       } catch (_basicError) {
         return {
           ...FALLBACK_DATA,
-          date: new Date().toISOString().split("T")[0],
+          date: today,
           metadata: {
             generatedAt: new Date().toISOString(),
             source: "fallback",

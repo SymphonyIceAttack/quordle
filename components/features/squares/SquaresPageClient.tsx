@@ -84,7 +84,11 @@ export function SquaresPageClient({ initialData }: SquaresPageClientProps) {
   const dailyNumber = getDailyNumber(initialData.date);
 
   // Defensive check for grid
-  if (!initialData?.grid || initialData.grid.length !== 25) {
+  // Accept either 16 letters (4x4 fallback) or 25 letters (5x5)
+  if (
+    !initialData?.grid ||
+    (initialData.grid.length !== 16 && initialData.grid.length !== 25)
+  ) {
     console.error("Initial data missing or invalid grid:", initialData);
     return (
       <div className="container mx-auto p-4 max-w-4xl">

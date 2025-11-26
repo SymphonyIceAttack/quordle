@@ -35,30 +35,9 @@ export async function generateDailyWords(
   }
 }
 
-// In a real app, this would cache to a DB or KV store
-// For this demo, we'll just generate fresh words if needed or rely on client-side state
+// Cached daily word generation with 24-hour revalidation
 export async function cacheDailyWords(): Promise<DailyWordPool> {
   const today = new Date().toISOString().split("T")[0];
-
-  // 在开发模式下禁用缓存，实时生成新的单词
-  const isDevelopment = process.env.NODE_ENV === "development";
-
-  if (isDevelopment) {
-    try {
-      return await generateDailyWords("intermediate", today);
-    } catch (error) {
-      console.error("Error generating daily words, using fallback:", error);
-      return {
-        words: FALLBACK_WORDS,
-        date: new Date().toISOString().split("T")[0],
-        metadata: {
-          generatedAt: new Date().toISOString(),
-          source: "fallback",
-          difficulty: "intermediate",
-        },
-      };
-    }
-  }
 
   const getCachedWords = unstable_cache(
     async () => {

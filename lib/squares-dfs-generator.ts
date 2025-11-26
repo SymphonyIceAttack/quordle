@@ -243,12 +243,16 @@ function generateGridWithWordPlacement(words: string[]): {
     let placed = false;
 
     // 第一个单词可以自由放置（不需要匹配现有字母）
-    const _isFirstWord = index === 0;
+    const isFirstWord = index === 0;
 
     // 尝试所有可能的起始位置
     for (let startIndex = 0; startIndex < 25 && !placed; startIndex++) {
-      if (grid[startIndex] !== null && grid[startIndex] !== wordUpper[0]) {
-        continue; // 第一个字母必须匹配
+      if (
+        !isFirstWord &&
+        grid[startIndex] !== null &&
+        grid[startIndex] !== wordUpper[0]
+      ) {
+        continue; // 非首单词的起始字母必须匹配现有字母
       }
 
       const path = [startIndex];
@@ -365,8 +369,8 @@ export function generateOptimalGrid(
       // 每次尝试使用不同的单词组合和排序
       const shuffledWords = [...filteredWords].sort(() => Math.random() - 0.5);
 
-      // 随机选择单词数量（25-40个，支持更多核心单词）
-      const wordCount = Math.floor(Math.random() * 16) + 25;
+      // 随机选择单词数量（40-60个，增加尝试数量）
+      const wordCount = Math.floor(Math.random() * 21) + 40;
       const selectedWords = shuffledWords.slice(0, wordCount);
 
       const result = generateGridWithWords(selectedWords);
@@ -517,15 +521,15 @@ export async function generateDailySquaresUltimate(
     }
   }
 
-  // 确保选择的单词组合的unique letters <= 16
+  // 确保选择的单词组合的unique letters <= 22 (5x5 grid can support 20+ unique letters)
   let uniqueLetters = [
     ...new Set(selectedWords.join("").toUpperCase().split("")),
   ];
-  if (uniqueLetters.length > 16) {
-    // 逐步减少单词数量，直到.unique letters <= 16
+  if (uniqueLetters.length > 22) {
+    // 逐步减少单词数量，直到.unique letters <= 22
     let attempts = 0;
     while (attempts < 20) {
-      const newCount = Math.max(10, numWords - attempts * 3);
+      const newCount = Math.max(15, numWords - attempts * 2);
       selectedWords = [];
       usedIndices.clear();
 
@@ -540,7 +544,7 @@ export async function generateDailySquaresUltimate(
       uniqueLetters = [
         ...new Set(selectedWords.join("").toUpperCase().split("")),
       ];
-      if (uniqueLetters.length <= 16) {
+      if (uniqueLetters.length <= 22) {
         break;
       }
       attempts++;
