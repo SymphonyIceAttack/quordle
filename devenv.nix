@@ -13,7 +13,7 @@
   dotenv = {
     disableHint = true;
     enable = true;
-    filename = ".env.claude";
+    filename = ".env.crush";
   };
   # https://devenv.sh/services/
   # services.postgres.enable = true;
